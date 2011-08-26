@@ -1,9 +1,12 @@
 
 equal(X, X).
+equal(X, Y, X, Y).
+equal(X, Y, Z, X, Y, Z).
+equal(X, Y, Z, A, X, Y, Z, A).
 
 map(_, [], []).
 map(Func, [E|L], [O|M]):-
-		call(Func(E, O)),
+		call(Func, E, O),
 		map(Func, L, M).
 
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
@@ -74,28 +77,70 @@ readSkip(Read, CharList, String, LastChar, NewRead):-
 % read until no character of CharList is read
 readSkip(Read, CharList, LastChar, NewRead) :- 
 		readSkip(Read, CharList, _, LastChar, NewRead).
-
-
 		
 % readSkipCondition(+List, Char)
 % true if List contains Char
 readSkipCondition(List, Char) :- member(Char, List).
 
+% readBound(-Read, -Bound, String, +NewRead)
 
+readBound(Read, [FirstChar])
 
 %%%%%%%%%%%%%%%%%%%%      Function Database     %%%%%%%%%%%%%%%%%%%%      
+
+noValue(_) :- fail.
+
+% readToken(-Read, token, +NewRead)
+% read a token until whitespace and skip the preceeding whitespaces
+readToken(Read, [FistChar|Token], NewRead):-
+		readSkip(Read, " \t\n\r\f\v", FistChar, Read2),
+		readUntil(Read2, " \t\n\r\f\v", Token, _, NewRead).
+		
 
 % protocolStream(Read, Stack, Predicates)
 %	Predicates is [pStreamFunc("name", predicate), ...]
 %	Stack is ["...", ]
 %	predicate(+Stream, -NewStream)
 
-% createProtocolInputStream(-Read, +protocolStream(...))
-createProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :- 
-		findall(P, inputPredicate(P), Predicates).
+% newProtocolInputStream(-Read, +protocolStream(...))
+newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :- 
+		findall(inputPredicate(_, _), true, Predicates).
 
-inputPredicate()
+% read(-ProtocolStream, Value, +NewProtocolStream)
+% read a value from the Stream
+read(protocolStream(Read, Stack, Predicates), Value, protocolStream(NewRead, NewStack, NewPredicates)) :-
+		readToken(Read, Command, Read1),
+		member(inputPredicate(Command, Predicate), Predicates) -> (
+			call(	Predicate, 
+					protocolStream(Read, Stack, Predicates), 
+					protocolStream(Read1, Stack1, Predicates1), 
+					Result
+				),
+			call(Result, Value) -> (
+				equal(Read1, NewRead),
+				equal(Stack1, NewStack),
+				equal(Predicates1, NewPredicates)
+			) ;
+				read(	protocolStream(Read, Stack, Predicates), 
+						Value, 
+						protocolStream(NewRead, NewStack, NewPredicates)
+					)
+		) ;
+		throw(invalidCommand(Command)).
 
+
+inputPredicate("push", push).
+inputPredicate("int", int).
+
+definePredicate(push,	protocolStream(Read, Stack, P), 
+						protocolStream(NewRead, [Token|Stack], P), noValue) :-
+		readToken(Read, Token, NewRead).
+
+definePredicate(int,	protocolStream(Read, [S|Stack], P), 
+						protocolStream(Read, [I|Stack], P), noValue) :-
+		number_codes(I, S).
+
+		
 %%%%%%%%%%%%%%%%%%%%      Help     %%%%%%%%%%%%%%%%%%%%      
 helpProt(helpProt):- writeln('\
 helpProt\nhelpProt(atom)\n\
@@ -136,8 +181,11 @@ helpProt:- helpProt(_), fail; !.
 
 :- begin_tests(prot). 
 %%%%%%%%%%%%%%%%%%%%      Test string reader     %%%%%%%%%%%%%%%%%%%%      
-test(testtest):-
+test(testtest) :-
         reverse([1,2], [2,1]).
+		
+test(whitespace) :-
+		length(" \t\n\r\f\v", 6).
  
 test(reader1) :- 
 		S = "abcdefg", readChars(S, 3, "abc", _).
@@ -200,13 +248,15 @@ test(readSkip2) :-
 % 	Stack is ["...", ]
 % 	predicate(+Stream, -NewStream)
 
-test(createNewStream) :- createProtocolInputStream(readChars(String), InputStream).
+test(newStream) :- newProtocolInputStream(readChars(""), _).
 
 
 %%%%%%%%%%%%%%%%%%%%      Test protocol     %%%%%%%%%%%%%%%%%%%%      
 
 testEqual(Value, String) :- 
-		Read = readChars(String).
+		Read = readChars(String),
+		newProtocolInputStream(Read, Stream)
+		read(Stream, Value, _).
 	
 test(proto_1) :- 
 		testEqual(123, "push 123 int stop").
