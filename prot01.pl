@@ -1,4 +1,3 @@
-
 equal(X, X).
 equal(X, Y, X, Y).
 equal(X, Y, Z, X, Y, Z).
@@ -58,7 +57,7 @@ readWhile(Read, Condition, String, LastChar, NewRead):-
 			) ;
 			(	S == [], 
 				equal(String, []), 
-				LastChar == "", 
+				LastChar = "", 
 				NewRead = NewRead1
 			)
 		).
@@ -83,19 +82,21 @@ readSkip(Read, CharList, LastChar, NewRead) :-
 readSkipCondition(List, Char) :- member(Char, List).
 
 % readBound(-Read, -Bound, String, +NewRead)
+% todo:
+% readBound(Read, [FirstChar])
 
-readBound(Read, [FirstChar])
+% todo: read from static function
 
 %%%%%%%%%%%%%%%%%%%%      Function Database     %%%%%%%%%%%%%%%%%%%%      
 
-noValue(_) :- fail.
+noValue(Stream, Value, NewStream) :- readTerm(Stream, Value, NewStream).
+hasValue(Value, Stream, Value, Stream).
 
 % readToken(-Read, token, +NewRead)
 % read a token until whitespace and skip the preceeding whitespaces
 readToken(Read, [FistChar|Token], NewRead):-
-		readSkip(Read, " \t\n\r\f\v", FistChar, Read2),
+		readSkip(Read, " \t\n\r\f\v", [FistChar], Read2),
 		readUntil(Read2, " \t\n\r\f\v", Token, _, NewRead).
-		
 
 % protocolStream(Read, Stack, Predicates)
 %	Predicates is [pStreamFunc("name", predicate), ...]
@@ -104,33 +105,37 @@ readToken(Read, [FistChar|Token], NewRead):-
 
 % newProtocolInputStream(-Read, +protocolStream(...))
 newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :- 
-		findall(inputPredicate(_, _), true, Predicates).
-
-% read(-ProtocolStream, Value, +NewProtocolStream)
-% read a value from the Stream
-read(protocolStream(Read, Stack, Predicates), Value, protocolStream(NewRead, NewStack, NewPredicates)) :-
-		readToken(Read, Command, Read1),
+		findall(inputPredicate(String, Name), inputPredicate(String, Name), Predicates).
+	
+% readTerm(-ProtocolStream, Value, +NewProtocolStream)
+% read a term from the Stream
+readTerm(protocolStream(Read, Stack, Predicates), Value, protocolStream(NewRead, NewStack, NewPredicates)) :-
+		readToken(Read, Command, ReadAfter), gtrace,
 		member(inputPredicate(Command, Predicate), Predicates) -> (
-			call(	Predicate, 
+			definePredicate(
+					Predicate, 
 					protocolStream(Read, Stack, Predicates), 
-					protocolStream(Read1, Stack1, Predicates1), 
+					protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
 					Result
-				),
-			call(Result, Value) -> (
-				equal(Read1, NewRead),
-				equal(Stack1, NewStack),
-				equal(Predicates1, NewPredicates)
-			) ;
-				read(	protocolStream(Read, Stack, Predicates), 
-						Value, 
-						protocolStream(NewRead, NewStack, NewPredicates)
-					)
+				) ->
+					call(	Result, 
+							protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
+							Value,
+							protocolStream(NewRead, NewStack, NewPredicates)
+						)
+				;
+					trow(couldNotOperateOn(Predicate, protocolStream(Read, Stack, Predicates)))
 		) ;
 		throw(invalidCommand(Command)).
 
-
+% streamRead(+Stream, +Count, -Chars, -NewRead)
+% 	Stream is protocolStream
+% wrap around stream read
+streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Count, Chars, NewRead).
+		
 inputPredicate("push", push).
 inputPredicate("int", int).
+inputPredicate("stop", stop).
 
 definePredicate(push,	protocolStream(Read, Stack, P), 
 						protocolStream(NewRead, [Token|Stack], P), noValue) :-
@@ -140,153 +145,9 @@ definePredicate(int,	protocolStream(Read, [S|Stack], P),
 						protocolStream(Read, [I|Stack], P), noValue) :-
 		number_codes(I, S).
 
-		
-%%%%%%%%%%%%%%%%%%%%      Help     %%%%%%%%%%%%%%%%%%%%      
-helpProt(helpProt):- writeln('\
-helpProt\nhelpProt(atom)\n\
-	get help to the specified predicate\n').
-helpProt(readChars):- writeln('\
-readChars(+String, +Count, -String, -NewRead)\n\
-	\tNewRead(+count, -chars, -nextRead)\n\
-	create a stream from a string\n\
-	').
-helpProt(readUntil):- writeln('\
-readUntil(+Read, +CharList, String, LastChar, -NewRead)\n\
-	\t    Read(+count, -chars, -nextRead)\n\
-	\t NewRead(+count, -chars, -nextRead)\n\
-	read until a character of the String occours\n\
-	').
-helpProt(readUntilCondition):- writeln('\
-readUntilCondition(+List, Char)\n\
-	true if Char in List\n\
-	').
-helpProt(readWhile):- writeln('\
-readWhile(+Read, Condition, String, LastChar, -NewRead)\n\
-	\t   Read(+count, -chars, -nextRead)\n\
-	\tNewRead(+count, -chars, -nextRead)\n\
-	\tCondition(Char)\n\
-	read a character from Read while the condition ist True\n\
-	\tif nothing was read LastChar will be ""\n\
-	\totherwise LastChar will be the "%" string [Integer]\n\
-	').
-helpProt(readSkip):- writeln('\
-readSkip(+Read, +CharList, LastChar, -NewRead)\n\
-readSkip(+Read, +CharList, String, LastChar, -NewRead)\n\
-	\t   Read(+count, -chars, -nextRead)\n\
-	\tNewRead(+count, -chars, -nextRead)\n\
-	read until no character of CharList is read\n\
-	').
-helpProt:- helpProt(_), fail; !.
+definePredicate(stop,	protocolStream(Read, [S|Stack], P), 
+						protocolStream(Read, Stack, P), hasValue(S)).
+
+						
 
 
-:- begin_tests(prot). 
-%%%%%%%%%%%%%%%%%%%%      Test string reader     %%%%%%%%%%%%%%%%%%%%      
-test(testtest) :-
-        reverse([1,2], [2,1]).
-		
-test(whitespace) :-
-		length(" \t\n\r\f\v", 6).
- 
-test(reader1) :- 
-		S = "abcdefg", readChars(S, 3, "abc", _).
-
-test(reader2) :- 
-        S = "abcdefg", readChars(S, 3, "abc", NewRead), 
-		call(NewRead, 3, "def", _).
-
-test(reader3) :- 
-        S = "abcdefg", readChars(S, 8, _, NewRead), 
-		call(NewRead, 3, [], _).
-
-test(reader4) :- 
-        S = "abcdefg", 
-		Read0 = readChars(S),
-		call(Read0, 1, "a", Read1), 
-		call(Read1, 1, "b", Read2),
-		call(Read2, 1, "c", Read3),
-		call(Read3, 1, "d", Read4),
-		call(Read4, 1, "e", Read5),
-		call(Read5, 1, "f", Read6),
-		call(Read6, 1, "g", Read7),
-		equal(Read7, readChars("")).
-
-urks(A, B, C) :- C =:= A + B.
-test(urks) :-
-		call(urks(1, 1), 2).
-
-
-%%%%%%%%%%%%%%%%%%%%      Test readUntil     %%%%%%%%%%%%%%%%%%%%      
-
-test(readUntil1) :-
-	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars("123456789"), "3", "12", "3", _).
-
-test(readUntil2) :-
-	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars(""), "a", "", "", _).
-
-test(readUntil3) :-
-	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars("1234567890"), "a", "1234567890", "", _).
-
-		
-%%%%%%%%%%%%%%%%%%%%      Test readSkip     %%%%%%%%%%%%%%%%%%%%      
-
-test(readSkip1) :-
-	%	readSkip(+Read,           +CharList, -String, -LastChar, -NewRead)
-		readSkip(readChars("123456789"), "12", "12", "3", _).
-		
-test(readSkip2) :-
-	%	readSkip(+Read,           +CharList, -String, -LastChar, -NewRead)
-		readSkip(readChars(""), "a", "", "", _).
-		
-	
-%%%%%%%%%%%%%%%%%%%%      Test stream     %%%%%%%%%%%%%%%%%%%%      
-
-% protocolInputStream(Read, Stack, Predicates)
-% 	Predicates is [pStreamFunc("name", predicate), ...]
-% 	Stack is ["...", ]
-% 	predicate(+Stream, -NewStream)
-
-test(newStream) :- newProtocolInputStream(readChars(""), _).
-
-
-%%%%%%%%%%%%%%%%%%%%      Test protocol     %%%%%%%%%%%%%%%%%%%%      
-
-testEqual(Value, String) :- 
-		Read = readChars(String),
-		newProtocolInputStream(Read, Stream)
-		read(Stream, Value, _).
-	
-test(proto_1) :- 
-		testEqual(123, "push 123 int stop").
-test(proto_2) :- 
-        testEqual(123, "def :int push int :int :int 123 stop").
-test(proto_3) :- 
-        testEqual(11111111111111111111, "push 11111111111111111111 int stop").
-test(proto_4) :- 
-        testEqual(1.3344, "push 1.3344 float stop").
-test(proto_5) :- 
-        testEqual(1.3344, "def :float push float :float :float 1.3344 stop").
-test(proto_6) :- 
-        testEqual("hello world", "bound ' hello world' stop").
-test(proto_7) :- 
-        testEqual("hello world", "bound ' hello world' decode ascii stop").
-test(proto_8) :- 
-        testEqual("hello world", "bound ' aGVsbG8gd29ybGQ=\n' decode base64 stop").
-test(proto_9) :- 
-        testEqual([1,2,3], "list push 1 int switch push 2 int switch push 3 int switch switch insert switch insert switch insert stop").
-test(proto_10) :- 
-        testEqual([1,2,3],   "list def :insint push int insert :insint :insint 3 :insint 2 :insint 1 stop").
-
-
-		
-:- end_tests(prot).
- 
-main:- 
-        consult(prot01), main2.
-        
-main2:- 
-        write('--------------------------testing...---------------------------')
-        , nl,
-        run_tests.
