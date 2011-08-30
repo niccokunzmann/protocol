@@ -76,11 +76,18 @@ test(readToken2) :- readToken(readChars("  1234"), "1234", _).
 
 %%%%%%%%%%%%%%%%%%%%      Test protocol     %%%%%%%%%%%%%%%%%%%%      
 
-testEqual(Value, String) :- 
+
+testEqual(Value, String) :- testEqual(Value, String, _).
+
+testEqual(Value, String, Stream) :- 
 		Read = readChars(String),
 		newProtocolInputStream(Read, Stream),
-		readTerm(Stream, Value, _).
-	
+		gtrace, 
+		readTerm(Stream, Value, Stream).
+
+test(proto_int_stack) :- 
+	testEqual(123, "push 123 int ", protocolStream(_, [123], _)).
+
 test(proto_int1) :- 
 		testEqual(123, "push 123 int stop").
 test(proto_int2) :- 
@@ -101,6 +108,8 @@ test(proto_list1) :-
         testEqual([1,2,3], "list push 1 int switch push 2 int switch push 3 int switch switch insert switch insert switch insert stop").
 test(proto_list2) :- 
         testEqual([1,2,3],   "list def :insint push int insert :insint :insint 3 :insint 2 :insint 1 stop").
+test(proto_list3) :- 
+        testEqual([],   "list  stop  ").
 
 
 		
@@ -108,6 +117,7 @@ test(proto_list2) :-
  
 main:- 
         consult(prot01), 
+        consult(prot01test), 
         consult(prot01help), 
 		main2.
         

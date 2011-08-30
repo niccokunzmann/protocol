@@ -8,6 +8,15 @@ map(Func, [E|L], [O|M]):-
 		call(Func, E, O),
 		map(Func, L, M).
 
+% foreach(Variable, List, Function) 
+% execute the Function, binding Variable to every List item
+foreach(_, [], _).
+foreach(Predicate, [Value|Values], Function):-
+		(	Predicate is Value, 
+			call(Function), fail
+		) ;
+		foreach(Predicate, Values, Function).
+		
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
 
 % readChars(+String, +Count, -String, -NewRead)
@@ -109,40 +118,55 @@ newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :-
 	
 % readTerm(-ProtocolStream, Value, +NewProtocolStream)
 % read a term from the Stream
-readTerm(protocolStream(Read, Stack, Predicates), Value, protocolStream(NewRead, NewStack, NewPredicates)) :-
-		readToken(Read, Command, ReadToken), 
-		(	member(inputPredicate(Command, Predicate), Predicates) -> (
-				definePredicate(
-						Predicate, 
-						protocolStream(ReadToken, Stack, Predicates), 
-						protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
-						Result
-					) ->
-						call(	Result, 
-								protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
-								Value,
-								protocolStream(NewRead, NewStack, NewPredicates)
-							)
-					;
-						trow(couldNotOperateOn(Predicate, protocolStream(Read, Stack, Predicates)))
-				) ;
-			string_to_atom(Command, CommandAtom),
-			throw(invalidCommand(CommandAtom))
-		).
+readTerm(Stream, Term, NewStream) :-
+		readToken(streamRead(Stream), Command, ReadAfter),
+		newRead(ReadAfter, Stream, StreamAfter),
+		callStreamCommand(ReadAfter, Command, Result, NewStream),
+		call( Result, StreamAfter, Term, NewStream).
 
 % streamRead(+Stream, +Count, -Chars, -NewRead)
 % 	Stream is protocolStream
 % wrap around stream read
 streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Count, Chars, NewRead).
+
+% newRead(NewRead, OldProtocolStream, NewProtocolStream)
+% replace the Read of the old prtocolStream with the new Read
+newRead(NewRead, protocolStream(_, Stack, Predicates), protocolStream(NewRead, Stack, Predicates)).
+
+% callStreamCommand(-ProtocolStream, -Command,  +Value, +ProtocolStream)
+% call a command on a given stream
+callStreamCommand(protocolStream(Read, Stack, Predicates), Command,  Result, NewStream) :- 
+		member(inputPredicate(Command, Predicate), Predicates) -> (
+			definePredicate(
+					Predicate, 
+					protocolStream(Read, Stack, Predicates), 
+					NewStream,
+					Result
+				) -> true
+			;	throw(couldNotOperateOn(Predicate, protocolStream(Read, Stack, Predicates)))
+		) ;
+			string_to_atom(Command, CommandAtom),
+			throw(invalidCommand(CommandAtom)).
+		
+%%%%%%%%%%%%%%%%%%%%      given protocol functions     %%%%%%%%%%%%%%%%%%%%      
 		
 inputPredicate("push", push).
 inputPredicate("int", int).
 inputPredicate("stop", stop).
-inputPredicate("stop", list).
-inputPredicate("stop", bound).
-inputPredicate("stop", stop).
+inputPredicate("list", list).
+inputPredicate("bound", bound).
+inputPredicate("switch", switch).
+inputPredicate("insert", insert).
+inputPredicate("head", head).
+inputPredicate("save", save).
+inputPredicate("dup", dup).
+inputPredicate("def", def).
 
 definePredicate(push,	protocolStream(Read, Stack, P), 
+						protocolStream(NewRead, [Token|Stack], P), noValue) :-
+		readToken(Read, Token, NewRead).
+
+definePredicate(bound,	protocolStream(Read, Stack, P), 
 						protocolStream(NewRead, [Token|Stack], P), noValue) :-
 		readToken(Read, Token, NewRead).
 
@@ -153,12 +177,53 @@ definePredicate(int,	protocolStream(Read, [S|Stack], P),
 definePredicate(stop,	protocolStream(Read, [S|Stack], P), 
 						protocolStream(Read, Stack, P), hasValue(S)).
 
-definePredicate(int,	protocolStream(Read, [S|Stack], P), 
-						protocolStream(Read, [I|Stack], P), noValue) :-
-		number_codes(I, S).
+definePredicate(list,	protocolStream(Read, Stack, P), 
+						protocolStream(Read, [[]|Stack], P), noValue).
 
-definePredicate(int,	protocolStream(Read, [S|Stack], P), 
-						protocolStream(Read, [I|Stack], P), noValue) :-
-		number_codes(I, S).
+definePredicate(switch,	protocolStream(Read, [A, B|Stack], P), 
+						protocolStream(Read, [B, A|Stack], P), noValue).
 
+definePredicate(insert,	protocolStream(Read, [A, L|Stack], P), 
+						protocolStream(Read, [[A|L]|Stack], P), noValue).
 						
+definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
+						protocolStream(Read, [A, L|Stack], P), noValue).
+
+definePredicate(save,	protocolStream(Read, [Value|Stack], P), 
+						protocolStream(NewRead, Stack, 
+						[inputPredicate(Command, restore(Value))|P]), noValue):-
+		readToken(Read, Command, NewRead).
+
+definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
+						protocolStream(Read, [A, L|Stack], P), noValue).
+
+definePredicate(dup,	protocolStream(Read, [A|Stack], P), 
+						protocolStream(Read, [A, A|Stack], P), noValue).
+
+definePredicate(restore(V),	protocolStream(Read, Stack, P), 
+						protocolStream(Read, [V|Stack], P), noValue).
+
+definePredicate(def,	protocolStream(Read, Stack, P), 
+						protocolStream(NewRead, Stack, 
+						[inpurPredicate(Name, defined(Commands))|P]), noValue) :-
+		readToken(Read, Name, Read1), 
+		readUntil(readTokens(Read1), [Name], Commands, Name2, readTokens(NewRead)),
+		assert([Name] == Name2).
+		
+definePredicate(defined([Command|Commands]), OldStream, NewStream, noValue) :-
+		callCommand(OldStream, Command, _, Stream1),
+		definePredicate(defined(Commands), Stream1, NewStream, noValue).
+definePredicate(defined([]), Stream, Stream, noValue).
+
+		
+% for def
+% readTokens(+Read, +Count, -[Tokens], -NewRead)
+%   NewRead(+count, -chars, -nextRead)
+% a token stream from Read of chars
+readTokens(Read, 0, [], readToken(Read)).
+readTokens(Read, I, [Token | Result], NewRead):-
+		I >= 1, I2 is I - 1, 
+		readToken(Read, Token, NewRead),
+		readTokens(Read, I2, Result, NewRead).
+
+		
