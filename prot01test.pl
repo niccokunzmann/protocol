@@ -67,11 +67,19 @@ test(readSkip2) :-
 % 	Stack is ["...", ]
 % 	predicate(+Stream, -NewStream)
 
-test(newStream) :- newProtocolInputStream(readChars(""), _).
+test(newStream) :- 
+		newProtocolInputStream(readChars(""), _).
 
-test(readToken1) :- readToken(readChars("  123456 "), "123456", _).
+test(readToken1) :- 
+		readToken(readChars("  123456 "), "123456", _).
 
-test(readToken2) :- readToken(readChars("  1234"), "1234", _).
+test(readToken2) :- 
+		readToken(readChars("  1234"), "1234", _).
+
+test(readTokens1) :-
+	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
+		readTokens(readChars("la li lu ! "), 3, ["la", "li", "lu"], 
+				_).
 
 
 %%%%%%%%%%%%%%%%%%%%      Test protocol     %%%%%%%%%%%%%%%%%%%%      
@@ -79,14 +87,13 @@ test(readToken2) :- readToken(readChars("  1234"), "1234", _).
 
 testEqual(Value, String) :- testEqual(Value, String, _).
 
-testEqual(Value, String, Stream) :- 
+testEqual(Value, String, StreamOut) :- 
 		Read = readChars(String),
 		newProtocolInputStream(Read, Stream),
-		gtrace, 
-		readTerm(Stream, Value, Stream).
+		readTerm(Stream, Value, StreamOut).
 
 test(proto_int_stack) :- 
-	testEqual(123, "push 123 int ", protocolStream(_, [123], _)).
+	testEqual(123, "push 123 int dup stop", protocolStream(_, [123], _)).
 
 test(proto_int1) :- 
 		testEqual(123, "push 123 int stop").

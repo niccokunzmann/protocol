@@ -121,8 +121,8 @@ newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :-
 readTerm(Stream, Term, NewStream) :-
 		readToken(streamRead(Stream), Command, ReadAfter),
 		newRead(ReadAfter, Stream, StreamAfter),
-		callStreamCommand(ReadAfter, Command, Result, NewStream),
-		call( Result, StreamAfter, Term, NewStream).
+		callStreamCommand(StreamAfter, Command, Result, CStream),
+		call( Result, CStream, Term, NewStream).
 
 % streamRead(+Stream, +Count, -Chars, -NewRead)
 % 	Stream is protocolStream
@@ -135,7 +135,8 @@ newRead(NewRead, protocolStream(_, Stack, Predicates), protocolStream(NewRead, S
 
 % callStreamCommand(-ProtocolStream, -Command,  +Value, +ProtocolStream)
 % call a command on a given stream
-callStreamCommand(protocolStream(Read, Stack, Predicates), Command,  Result, NewStream) :- 
+callStreamCommand(protocolStream(Read, Stack, Predicates), Command, Result, NewStream) :- 
+%		gtrace,
 		member(inputPredicate(Command, Predicate), Predicates) -> (
 			definePredicate(
 					Predicate, 
@@ -167,8 +168,9 @@ definePredicate(push,	protocolStream(Read, Stack, P),
 		readToken(Read, Token, NewRead).
 
 definePredicate(bound,	protocolStream(Read, Stack, P), 
-						protocolStream(NewRead, [Token|Stack], P), noValue) :-
-		readToken(Read, Token, NewRead).
+						protocolStream(NewRead, [Bound|Stack], P), noValue) :-
+		% todo:
+		readToken(Read, Bound, NewRead), fail.
 
 definePredicate(int,	protocolStream(Read, [S|Stack], P), 
 						protocolStream(Read, [I|Stack], P), noValue) :-
@@ -205,8 +207,8 @@ definePredicate(restore(V),	protocolStream(Read, Stack, P),
 
 definePredicate(def,	protocolStream(Read, Stack, P), 
 						protocolStream(NewRead, Stack, 
-						[inpurPredicate(Name, defined(Commands))|P]), noValue) :-
-		readToken(Read, Name, Read1), 
+						[inputPredicate(Name, defined(Commands))|P]), noValue) :-
+		readToken(Read, Name, Read1), gtrace,
 		readUntil(readTokens(Read1), [Name], Commands, Name2, readTokens(NewRead)),
 		assert([Name] == Name2).
 		
@@ -220,10 +222,11 @@ definePredicate(defined([]), Stream, Stream, noValue).
 % readTokens(+Read, +Count, -[Tokens], -NewRead)
 %   NewRead(+count, -chars, -nextRead)
 % a token stream from Read of chars
+% read Count tokens from the string
 readTokens(Read, 0, [], readToken(Read)).
 readTokens(Read, I, [Token | Result], NewRead):-
 		I >= 1, I2 is I - 1, 
-		readToken(Read, Token, NewRead),
-		readTokens(Read, I2, Result, NewRead).
+		readToken(Read, Token, TRead),
+		readTokens(TRead, I2, Result, NewRead).
 
 		
