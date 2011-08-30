@@ -81,25 +81,25 @@ testEqual(Value, String) :-
 		newProtocolInputStream(Read, Stream),
 		readTerm(Stream, Value, _).
 	
-test(proto_1) :- 
+test(proto_int1) :- 
 		testEqual(123, "push 123 int stop").
-test(proto_2) :- 
+test(proto_int2) :- 
         testEqual(123, "def :int push int :int :int 123 stop").
-test(proto_3) :- 
+test(proto_int3) :- 
         testEqual(11111111111111111111, "push 11111111111111111111 int stop").
-test(proto_4) :- 
-        testEqual(1.3344, "push 1.3344 float stop").
-test(proto_5) :- 
-        testEqual(1.3344, "def :float push float :float :float 1.3344 stop").
-test(proto_6) :- 
+% test(proto_float1) :- 
+%         testEqual(1.3344, "push 1.3344 float stop").
+% test(proto_float2) :- 
+%         testEqual(1.3344, "def :float push float :float :float 1.3344 stop").
+test(proto_str1) :- 
         testEqual("hello world", "bound ' hello world' stop").
-test(proto_7) :- 
+test(proto_str2) :- 
         testEqual("hello world", "bound ' hello world' decode ascii stop").
-test(proto_8) :- 
+test(proto_str3) :- 
         testEqual("hello world", "bound ' aGVsbG8gd29ybGQ=\n' decode base64 stop").
-test(proto_9) :- 
+test(proto_list1) :- 
         testEqual([1,2,3], "list push 1 int switch push 2 int switch push 3 int switch switch insert switch insert switch insert stop").
-test(proto_10) :- 
+test(proto_list2) :- 
         testEqual([1,2,3],   "list def :insint push int insert :insint :insint 3 :insint 2 :insint 1 stop").
 
 
