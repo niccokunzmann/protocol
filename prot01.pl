@@ -110,23 +110,25 @@ newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :-
 % readTerm(-ProtocolStream, Value, +NewProtocolStream)
 % read a term from the Stream
 readTerm(protocolStream(Read, Stack, Predicates), Value, protocolStream(NewRead, NewStack, NewPredicates)) :-
-		readToken(Read, Command, ReadAfter), gtrace,
-		member(inputPredicate(Command, Predicate), Predicates) -> (
-			definePredicate(
-					Predicate, 
-					protocolStream(Read, Stack, Predicates), 
-					protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
-					Result
-				) ->
-					call(	Result, 
-							protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
-							Value,
-							protocolStream(NewRead, NewStack, NewPredicates)
-						)
-				;
-					trow(couldNotOperateOn(Predicate, protocolStream(Read, Stack, Predicates)))
-		) ;
-		throw(invalidCommand(Command)).
+		readToken(Read, Command, ReadToken), 
+		(	member(inputPredicate(Command, Predicate), Predicates) -> (
+				definePredicate(
+						Predicate, 
+						protocolStream(ReadToken, Stack, Predicates), 
+						protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
+						Result
+					) ->
+						call(	Result, 
+								protocolStream(ReadAfter, StackAfter, PredicatesAfter), 
+								Value,
+								protocolStream(NewRead, NewStack, NewPredicates)
+							)
+					;
+						trow(couldNotOperateOn(Predicate, protocolStream(Read, Stack, Predicates)))
+				) ;
+			string_to_atom(Command, CommandAtom),
+			throw(invalidCommand(CommandAtom))
+		).
 
 % streamRead(+Stream, +Count, -Chars, -NewRead)
 % 	Stream is protocolStream
@@ -135,6 +137,9 @@ streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Coun
 		
 inputPredicate("push", push).
 inputPredicate("int", int).
+inputPredicate("stop", stop).
+inputPredicate("stop", list).
+inputPredicate("stop", bound).
 inputPredicate("stop", stop).
 
 definePredicate(push,	protocolStream(Read, Stack, P), 
@@ -148,6 +153,12 @@ definePredicate(int,	protocolStream(Read, [S|Stack], P),
 definePredicate(stop,	protocolStream(Read, [S|Stack], P), 
 						protocolStream(Read, Stack, P), hasValue(S)).
 
+definePredicate(int,	protocolStream(Read, [S|Stack], P), 
+						protocolStream(Read, [I|Stack], P), noValue) :-
+		number_codes(I, S).
+
+definePredicate(int,	protocolStream(Read, [S|Stack], P), 
+						protocolStream(Read, [I|Stack], P), noValue) :-
+		number_codes(I, S).
+
 						
-
-
