@@ -101,10 +101,10 @@ test(proto_int2) :-
         testEqual(123, "def :int push int :int :int 123 stop").
 test(proto_int3) :- 
         testEqual(11111111111111111111, "push 11111111111111111111 int stop").
-% test(proto_float1) :- 
-%         testEqual(1.3344, "push 1.3344 float stop").
-% test(proto_float2) :- 
-%         testEqual(1.3344, "def :float push float :float :float 1.3344 stop").
+test(proto_float1) :- 
+        testEqual(1.3344, "push 1.3344 float stop").
+test(proto_float2) :- 
+        testEqual(1.3344, "def :float push float :float :float 1.3344 stop").
 test(proto_str1) :- 
         testEqual("hello world", "bound ' hello world' stop").
 test(proto_str2) :- 
