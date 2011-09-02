@@ -59,7 +59,39 @@ test(readSkip2) :-
 	%	readSkip(+Read,           +CharList, -String, -LastChar, -NewRead)
 		readSkip(readChars(""), "a", "", "", _).
 		
-	
+%%%%%%%%%%%%%%%%%%%%      Test Bound functions     %%%%%%%%%%%%%%%%%%%%      
+
+test(matchBound1) :- 
+		matchBound("la", "lalilu", 2, []).
+
+test(matchBound2) :- 
+		matchBound("lali", "lal", 3, "i").
+
+test(findBoundMatch1) :- 
+		findBoundMatch("---", "abc---asd", 3, 3, "").
+		
+test(findBoundMatch2) :- 
+		findBoundMatch("---", "abc---", 3, 3, "").
+		
+test(findBoundMatch3) :- 
+		findBoundMatch("---", "abc--", 3, 2, "-").
+		
+test(readBound1) :- 
+		readBound(	readChars("-- jaldfl"), 
+					"--", String, _),
+		equal(String, "").
+		
+test(readBound2) :- 
+		readBound(	readChars("123-- jaldfl"), 
+					"--", String, _),
+		equal(String, "123").
+
+test(readBound3) :- 
+		readBound(	readChars("12-- jaldfl"), 
+					"--", String, _),
+		equal(String, "12").
+
+		
 %%%%%%%%%%%%%%%%%%%%      Test stream     %%%%%%%%%%%%%%%%%%%%      
 
 % protocolInputStream(Read, Stack, Predicates)

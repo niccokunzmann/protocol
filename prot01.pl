@@ -1,3 +1,6 @@
+
+:- consult(encoding).
+
 equal(X, X).
 equal(X, Y, X, Y).
 equal(X, Y, Z, X, Y, Z).
@@ -91,8 +94,37 @@ readSkip(Read, CharList, LastChar, NewRead) :-
 readSkipCondition(List, Char) :- member(Char, List).
 
 % readBound(-Read, -Bound, String, +NewRead)
-% todo:
-readBound(Read, [FirstChar|Bound], Out).
+% 
+readBound(Read, Bound, String, NewRead) :- 
+		length(Bound, BoundLen),
+		call(Read, BoundLen, StartString, Read1),
+		readBound(Read1, StartString, BoundLen, Bound, String, NewRead).
+		
+readBound(Read, Bound, _, Bound, [], Read) :- !.
+readBound(Read, StartString, BoundLen, Bound, Out, NewRead):- 
+		length(StartString, StrLen),
+		CharCountToRead is BoundLen - StrLen,
+		call(Read, CharCountToRead, ReadString, Read1), 
+		append(StartString, ReadString, String),
+		findBoundMatch(Bound, String, Index, _, _),
+		append(NoBound, StringBoundPart, String),
+		length(NoBound, Index),
+		% recursion here
+		readBound(Read1, StringBoundPart, BoundLen, Bound, Out2, NewRead),
+		append(NoBound, Out2, Out).
+		
+matchBound([C|Bound], [C|String], Count, BoundEnd) :- 
+		matchBound(Bound, String, Count1, BoundEnd), 
+		Count is 1 + Count1.
+matchBound(Bound, [], 0, Bound).
+matchBound([], _, 0, []).
+
+findBoundMatch(Bound, [], 0, 0, Bound).
+findBoundMatch(Bound, String, 0, Len, BoundEnd) :-	
+		matchBound(Bound, String, Len, BoundEnd), !.
+findBoundMatch(Bound, [_|String], Index, Len, BoundEnd) :-
+		findBoundMatch(Bound, String, Index0, Len, BoundEnd),
+		Index is Index0 + 1 .
 
 % todo: read from static function
 
@@ -161,6 +193,8 @@ inputPredicate("head", head).
 inputPredicate("save", save).
 inputPredicate("dup", dup).
 inputPredicate("def", def).
+inputPredicate("base64", base64).
+inputPredicate("utf8", utf8).
 inputPredicate(S, A):- member(S, ["int", "num", "float"]), string_to_atom(S, A).
 
 
@@ -169,9 +203,10 @@ definePredicate(push,	protocolStream(Read, Stack, P),
 		readToken(Read, Token, NewRead).
 
 definePredicate(bound,	protocolStream(Read, Stack, P), 
-						protocolStream(NewRead, [Bound|Stack], P), noValue) :-
+						protocolStream(NewRead, [String|Stack], P), noValue) :-
 		% todo:
-		readToken(Read, Bound, NewRead), fail.
+		readToken(Read, Bound, Read1),
+		readBound(Read1, Bound, String, NewRead).
 
 definePredicate(Num,	protocolStream(Read, [S|Stack], P), 
 						protocolStream(Read, [I|Stack], P), noValue) :-
@@ -204,6 +239,14 @@ definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P),
 definePredicate(dup,	protocolStream(Read, [A|Stack], P), 
 						protocolStream(Read, [A, A|Stack], P), noValue).
 
+definePredicate(base64,	protocolStream(Read, [A|Stack], P), 
+						protocolStream(Read, [B|Stack], P), noValue) :- 
+		encoding(base64, B, A).
+
+definePredicate(utf8,	protocolStream(Read, [A|Stack], P), 
+						protocolStream(Read, [B|Stack], P), noValue) :- 
+		encoding(utf8, B, A).
+		
 definePredicate(restore(V),	protocolStream(Read, Stack, P), 
 						protocolStream(Read, [V|Stack], P), noValue).
 
