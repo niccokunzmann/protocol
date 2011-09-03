@@ -32,7 +32,7 @@
 	The module structure is highly inspired by the base64.pl of Jan Wielemaker.
 */
 
-
+		
 :- module(utf8,
 	  [ utf8/2,			% ?PlainText, ?Encoded
 	    utf8//1			% ?PlainText
@@ -71,44 +71,45 @@ utf8(_, _) :-
 
 utf8(Input) -->
 	{ nonvar(Input) }, !,
+% 	byteOrderMark(Input), % todo
 	encode(Input).
 utf8(Output) -->
 	decode(Output).
 	
 encode([X|E]) -->
-	{	X #=< 0x7F }, !, 
+	{	X =< 0x7F }, !, 
 	[X],
 	encode(E).
 
 encode([X|E]) -->
-	{	X #=< 0x7FF }, !,
+	{	X =< 0x7FF }, !,
 	[B, A], 
-	{	B is ((X >> 6) /\ 0b00011111) | 0b11000000,
-		A is ( X       /\ 0b00111111) | 0b10000000
+	{	B is ((X >> 6) /\ 0b00011111) \/ 0b11000000,
+		A is ( X       /\ 0b00111111) \/ 0b10000000
 	}, 
 	encode(E).
 	
 encode([X|E]) -->
-	{	X #=< 0xFFFF }, !,
+	{	X =< 0xFFFF }, !,
 	[C, B, A], 
-	{	C is ((X >> 12) /\ 0b00001111) | 0b11100000,
-		B is ((X >> 6 ) /\ 0b00111111) | 0b10000000,
-		A is ((X      ) /\ 0b00111111) | 0b10000000
+	{	C is ((X >> 12) /\ 0b00001111) \/ 0b11100000,
+		B is ((X >> 6 ) /\ 0b00111111) \/ 0b10000000,
+		A is ((X      ) /\ 0b00111111) \/ 0b10000000
 	}, 
 	encode(E).
 
 encode([X|E]) -->
-	{	X #=< 0x10FFFF }, !,
+	{	X =< 0x10FFFF }, !,
 	[D, C, B, A], 
-	{	D is ((X >> 18) /\ 0b00000111) | 0b11110000,
-		C is ((X >> 12) /\ 0b00111111) | 0b10000000,
-		B is ((X >> 6 ) /\ 0b00111111) | 0b10000000,
-		A is ((X      ) /\ 0b00111111) | 0b10000000
+	{	D is ((X >> 18) /\ 0b00000111) \/ 0b11110000,
+		C is ((X >> 12) /\ 0b00111111) \/ 0b10000000,
+		B is ((X >> 6 ) /\ 0b00111111) \/ 0b10000000,
+		A is ((X      ) /\ 0b00111111) \/ 0b10000000
 	}, 
 	encode(E).
 
 encode([C|_]) -->
-		trow(error(unicodeOutOfRange(C)))
+	{	throw(error(unicodeOutOfRange(C)))
 	},
 	[].
 
@@ -116,9 +117,15 @@ encode([]) -->
 	[].
 	
 decode([A|E]) -->
-	{	A #=< 0b01111111 }, !, 
+	{	A =< 0b01111111 }, !, 
 	[A], 
 	decode(E).
 	
 decode([A, B|E]) -->
-	{	A #=< 0b01111111}, !, 
+	{	A =< 0b11011111 }, !, 
+	[X],
+	{	X is (A /\ 0b00011111) << 6 + 
+			 (B /\ 0b00111111)
+	},
+	decode(E).
+	
