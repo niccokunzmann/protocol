@@ -139,6 +139,42 @@ test(utf8_decode_Violin) :-
 % ?- atom_codes(A, [0x1d11e]), atom_codes(A, [0x1d11e]).
 % false.
 
+%%%%%%%%%%%%%%%%%%% Encode with BOM %%%%%%%%%%%%%%%%%%%%
+test(utf8_decode_stump_of_tree_reversed) :- 
+		% with BOM
+		% U+233B4
+		equal([0x233B4], X),
+		utf8(X, Y, reversedByteOrder),
+		equal(Y, [	0xBF , 0xBB , 0xEF, 
+					0xB4 , 0x8E , 0xA3 , 0xF0]).
+
+test(utf8_decode_stump_of_tree_with_BOM) :- 
+		% with BOM
+		% U+233B4
+		equal([0x233B4], X),
+		utf8(X, Y, normalByteOrderWithMark),
+		equal(Y, [	0xEF, 0xBB , 0xBF , 
+					0xF0 , 0xA3 , 0x8E , 0xB4]).
+
+%%%%%%%%%%%%%%%%%%% Decode with BOM %%%%%%%%%%%%%%%%%%%%
+test(utf8_decode_stump_of_tree) :- 
+		% with BOM
+		% U+233B4
+		equal(Y, [	0xEF, 0xBB , 0xBF , 
+					0xF0 , 0xA3 , 0x8E , 0xB4]),
+		utf8(X, Y, BO),
+		equal([0x233B4], X),
+		equal(BO, normalByteOrderWithMark).
+
+test(utf8_decode_stump_of_tree_reversed) :- 
+		% with BOM
+		% U+233B4
+		equal(Y, [	0xBF , 0xBB , 0xEF, 
+					0xB4 , 0x8E , 0xA3 , 0xF0]),
+		utf8(X, Y, BO),
+		equal([0x233B4], X),
+		equal(BO, reversedByteOrder).
+
 %%%%%%%%%%%%%%%%%%% End Tests %%%%%%%%%%%%%%%%%%%%
 
 :- end_tests(utf8).
