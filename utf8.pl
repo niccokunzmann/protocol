@@ -73,8 +73,12 @@ utf8(Input) -->
 	{ nonvar(Input) }, !,
 % 	byteOrderMark(Input), % todo
 	encode(Input).
+
 utf8(Output) -->
+	%{gtrace},
 	decode(Output).
+
+%%%%%%%%%%%%%%%%%%%%% Encoding %%%%%%%%%%%%%%%%%%%
 	
 encode([X|E]) -->
 	{	X =< 0x7F }, !, 
@@ -116,16 +120,39 @@ encode([C|_]) -->
 encode([]) -->
 	[].
 	
-decode([A|E]) -->
-	{	A =< 0b01111111 }, !, 
-	[A], 
-	decode(E).
+%%%%%%%%%%%%%%%%%%%%% Decoding %%%%%%%%%%%%%%%%%%%
 	
-decode([A, B|E]) -->
-	{	A =< 0b11011111 }, !, 
-	[X],
+decodeChar(A) -->
+	[A], 
+	{	0b00000000 is A /\ 0b10000000 }, !.
+	
+decodeChar(X) -->
+	[A, B],
+	{	0b11000000 is A /\ 0b11100000 }, !, 
 	{	X is (A /\ 0b00011111) << 6 + 
 			 (B /\ 0b00111111)
-	},
+	}.
+	
+decodeChar(X) -->
+	[A, B, C],
+	{	0b11110000 is A /\ 0b11111000 }, !, 
+	{	X is (A /\ 0b00000111) << 12 + 
+			 (B /\ 0b00111111) <<  6 + 
+			 (C /\ 0b00111111)
+	}.
+
+decodeChar(X) -->
+	[A, B, C, D],
+	{	0b11110000 is A /\ 0b11111000 }, !, 
+	{	X is (A /\ 0b00000111) << 18 + 
+			 (B /\ 0b00111111) << 12 + 
+			 (C /\ 0b00111111) <<  6 + 
+			 (D /\ 0b00111111)
+	}.
+	
+decode([Char|E]) -->
+	decodeChar(Char),
 	decode(E).
 	
+decode([]) -->
+	[].

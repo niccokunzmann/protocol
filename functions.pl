@@ -1,4 +1,12 @@
 
+:- module(functions
+	[	bin/2, 
+		number_binaryAtom/2, 
+		foreach/3, 
+		map/3,
+		equal/2, equal/4, equal/6, equal/8, equal/10
+	])
+
 number_binaryAtom(0, '0b0') :- !.
 number_binaryAtom(Num, Atom) :- 
 		nonvar(Num),
@@ -40,6 +48,7 @@ equal(X, X).
 equal(X, Y, X, Y).
 equal(X, Y, Z, X, Y, Z).
 equal(X, Y, Z, A, X, Y, Z, A).
+equal(X, Y, Z, A, B, X, Y, Z, A, B).
 
 map(_, [], []).
 map(Func, [E|L], [O|M]):-
@@ -47,7 +56,7 @@ map(Func, [E|L], [O|M]):-
 		map(Func, L, M).
 
 		
-% foreach(Variable, List, Function) 
+%% foreach(Variable, List, Function) 
 % execute the Function, binding Variable to every List item
 foreach(_, [], _).
 foreach(Predicate, [Value|Values], Function):-
