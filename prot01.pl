@@ -31,6 +31,11 @@
 :- use_module(encoding).
 :- use_module(functions).
 
+:- module(prot01,
+		[	characterStream/2,
+			newProtocolInputStream/2, 
+			readTerm/3
+		])
 		
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
 
@@ -47,6 +52,7 @@ readChars([Char| String], I, [Char | String2], NewRead):-
 		I >= 1, I2 is I - 1, 
 		readChars(String, I2, String2, NewRead).
 
+characterStream(String, readChars(String)).
 		
 %%%%%%%%%%%%%%%%%%%%      stream operations     %%%%%%%%%%%%%%%%%%%%      
 
