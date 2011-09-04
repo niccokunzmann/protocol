@@ -31,11 +31,12 @@
 :- use_module(encoding).
 :- use_module(functions).
 
+/*
 :- module(prot01,
 		[	characterStream/2,
 			newProtocolInputStream/2, 
 			readTerm/3
-		])
+		]) */
 		
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
 
@@ -163,7 +164,7 @@ readToken(Read, [FistChar|Token], NewRead):-
 %   NewRead(+count, -chars, -nextRead)
 % a token stream from Read of chars
 % read Count tokens from the string
-readTokens(Read, 0, [], readTokens(Read)).
+readTokens(Read, 0, [], readTokens(Read)) :- !.
 readTokens(Read, I, [Token | Result], NewRead):-
 		I >= 1, I2 is I - 1, 
 		readToken(Read, Token, TRead),
@@ -226,6 +227,7 @@ inputPredicate("dup", dup).
 inputPredicate("def", def).
 inputPredicate("base64", base64).
 inputPredicate("utf8", utf8).
+inputPredicate("decode", decode).
 inputPredicate(S, A):- member(S, ["int", "num", "float"]), string_to_atom(S, A).
 
 %%%%%%%%%%%%%%%%%%%%% Prolog specific %%%%%%%%%%%%%%%%%%%
@@ -250,9 +252,6 @@ definePredicate(insert,	protocolStream(Read, [A, L|Stack], P),
 definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
 						protocolStream(Read, [A, L|Stack], P), noValue).
 
-definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
-						protocolStream(Read, [A, L|Stack], P), noValue).
-
 definePredicate(base64,	protocolStream(Read, [A|Stack], P), 
 						protocolStream(Read, [B|Stack], P), noValue) :- 
 		encoding(base64, B, A).
@@ -261,6 +260,11 @@ definePredicate(utf8,	protocolStream(Read, [A|Stack], P),
 						protocolStream(Read, [B|Stack], P), noValue) :- 
 		encoding(utf8, B, A).
 		
+definePredicate(decode,	protocolStream(Read, [A|Stack], P), 
+						protocolStream(NewRead, [B|Stack], P), noValue) :- 
+		readToken(Read, Token, NewRead), !, gtrace,
+		normalizeEncodingName(Token, Encoding),
+		encoding(Encoding, B, A).
 
 %%%%%%%%%%%%%%%%%%%%% Protocol specific %%%%%%%%%%%%%%%%%%%
 definePredicate(push,	protocolStream(Read, Stack, P), 

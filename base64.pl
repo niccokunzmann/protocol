@@ -27,6 +27,9 @@
     by the GNU General Public License. This exception does not however
     invalidate any other reasons why the executable file might be covered by
     the GNU General Public License.
+	
+	Second Author:	Nicco Kunzmann
+		did:	"White-space introduction and parsing"
 */
 
 :- module(base64,
@@ -51,7 +54,6 @@ H = 'Hello World'
 ==
 
 @tbd	Stream I/O
-@tbd	White-space introduction and parsing
 @author	Jan Wielemaker
 */
 
@@ -61,16 +63,25 @@ H = 'Hello World'
 %	Translates between plaintext and base64  encoded atom or string.
 %	See also base64//1.
 
-base64(Plain, Encoded) :-
-	nonvar(Plain), !,
-	atom_codes(Plain, PlainCodes),
-	phrase(base64(PlainCodes), EncCodes),
-	atom_codes(Encoded, EncCodes).
-base64(Plain, Encoded) :-
-	nonvar(Encoded), !,
-	atom_codes(Encoded, EncCodes),
-	phrase(base64(PlainCodes), EncCodes),
+base64(Plain, Encoded) :- 
+	atom(Plain),
+	atom_codes(Plain, PlainCodes), !, 
+	base64(PlainCodes, EncodedCodes), 
+	atom_codes(Encoded, EncodedCodes).
+base64(Plain, Encoded) :- 
+	atom(Encoded),
+	atom_codes(Encoded, EncodedCodes), !, 
+	base64(PlainCodes, EncodedCodes),
 	atom_codes(Plain, PlainCodes).
+base64(PlainCodes, EncodedCodes) :- 
+	% decode
+	nonvar(EncodedCodes), !,
+	removeWhitespace(EncodedCodes, NoSpace),
+	phrase(base64(PlainCodes), NoSpace).
+base64(PlainCodes, EncodedCodes) :- 
+	% encode
+	nonvar(PlainCodes), !,
+	phrase(base64(PlainCodes), EncodedCodes).
 base64(_, _) :-
 	throw(error(instantiation_error, _)).
 
@@ -159,6 +170,23 @@ decode(Text) -->
 decode([]) -->
 	[].
 
+		 /*******************************
+		 *   WHITESPACES	*
+		 *******************************/
+
+removeWhitespace([W|L], L2) :- 
+		whitespace(W), !,
+		removeWhitespace(L, L2).
+removeWhitespace([X|L], [X|L2]) :- 
+		removeWhitespace(L, L2).
+removeWhitespace([], []).
+
+whitespace(0' ).
+whitespace(0'\t).
+whitespace(0'\n).
+whitespace(0'\r).
+whitespace(0'\f).
+whitespace(0'\v).
 
 		 /*******************************
 		 *   BASIC CHARACTER ENCODING	*

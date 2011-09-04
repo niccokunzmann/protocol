@@ -28,6 +28,9 @@
     the GNU General Public License.
 	
 	The module structure is highly inspired by base64.pl of Jan Wielemaker.
+	
+	todo: 	test on standart conformity 
+			error handling for malformed utf8 (missing or extra 0b10000000)
 */
 
 		
@@ -104,7 +107,7 @@ normalByteOrder(A) --> [A] .
 normalByteOrder(A, B) --> [A, B] .
 normalByteOrder(A, B, C) --> [A, B, C] .
 normalByteOrder(A, B, C, D) --> [A, B, C, D] .
-normalByteOrderWithMark(A) --> [A] .
+normalByteOrderWithMark(A) --> [A] . % same as normalByteOrder
 normalByteOrderWithMark(A, B) --> [A, B] .
 normalByteOrderWithMark(A, B, C) --> [A, B, C] .
 normalByteOrderWithMark(A, B, C, D) --> [A, B, C, D] .

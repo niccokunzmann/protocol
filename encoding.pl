@@ -32,43 +32,66 @@
 			normalizeEncodingName/2
 		]).
 
-equals(X, X).
+equal(X, X).
+
+% encoding(NormedEncodingName, Plain, Encoded) det.
+% normalizeEncodingName(Name, NormedEncodingName)
 
 :- use_module(base64).
 :- use_module(utf8).
 
-encoding(base64, Plain, Encoded) :- 
-		( atom(Plain); atom(Encoded) ) ,
-			base64(Plain, Encoded), !.
-encoding(base64, Plain, Encoded) :- 
-		phrase(base64(Plain), Encoded).
+encoding(base64, Plain, Encoded) :- !,
+		base64(Plain, Encoded).
 
-encoding(utf8, Plain, Encoded) :- 
+encoding(utf8, Plain, Encoded) :- !,
 		utf8(Plain, Encoded).
 
-encoding(utf8_be, Plain, Encoded) :- 
+encoding(utf8_be, Plain, Encoded) :- !, 
 		utf8(Plain, Encoded, normalByteOrderWithMark).
 
-encoding(utf8_le, Plain, Encoded) :- 
+encoding(utf8_le, Plain, Encoded) :- !,
 		utf8(Plain, Encoded, reversedByteOrder).
 
-encoding(ascii, Plain, Plain).
+encoding(ascii, Plain, Plain) :- !.
 
+encoding(Enc, _, _) :-
+		throw(error(couldNotFindEncoding(Enc))).
 
 normalizeEncodingName(Name, NormalizedName) :- 
-		toLower(Name, NormalizedName), 
-		equals(Name, "utf-8") -> equals(NormalizedName, "utf8").
+		norm(Name, S1), 
+		(	append("utf_", S_2, S1) ->
+				append("utf", S_2, S2)
+			; 	S2 = S1
+		),
+		atom_codes(NormalizedName, S2), !.
 
 normalizeEncodingName(Name, NormalizedName) :- 
 		atom(Name),
 		atom_codes(Name, NameString),
-		normalizeEncodingName(NameString, NormalizedString),
-		atom_codes(NormalizedName, NormalizedString).
-		
+		normalizeEncodingName(NameString, NormalizedName).
 
-toLower([], []).
-toLower([Upper|UpperTail], [Lower|LowerTail]) :-
-		( 	between(65, 90, Upper), Lower is Upper+32
-		; 	Lower is Upper 
-		),
-		toLower(UpperTail, LowerTail).
+norm([Upper|UpperTail], [Lower|LowerTail]) :-
+		% to lower case
+		between(65, 90, Upper), 
+		Lower is Upper+32,
+		norm(UpperTail, LowerTail), !.
+norm([0'- |T1], [0'_ |T2]) :- 
+		norm(T1, T2), !.
+		
+norm([C| T], [C| T2]) :-
+		norm(T, T2), !.
+norm([], []).
+
+removeWhiteSpace([W|L], L2) :- 
+		whitespace(W), !,
+		removeWhitespace(L, L2).
+removeWhiteSpace([X|L], [X|L2]) :- 
+		removeWhitespace(L, L2).
+removeWhitespace([], []).
+
+whitespace(0' ).
+whitespace(0'\t).
+whitespace(0'\n).
+whitespace(0'\r).
+whitespace(0'\f).
+whitespace(0'\v).
