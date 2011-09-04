@@ -31,12 +31,6 @@
 :- use_module(encoding).
 :- use_module(functions).
 
-/*
-:- module(prot01,
-		[	characterStream/2,
-			newProtocolInputStream/2, 
-			readTerm/3
-		]) */
 		
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
 
@@ -262,7 +256,7 @@ definePredicate(utf8,	protocolStream(Read, [A|Stack], P),
 		
 definePredicate(decode,	protocolStream(Read, [A|Stack], P), 
 						protocolStream(NewRead, [B|Stack], P), noValue) :- 
-		readToken(Read, Token, NewRead), !, gtrace,
+		readToken(Read, Token, NewRead), !,
 		normalizeEncodingName(Token, Encoding),
 		encoding(Encoding, B, A).
 

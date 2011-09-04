@@ -173,6 +173,10 @@ test(proto_str2) :-
         testEqual("hello world", "bound ' hello world' decode ascii stop").
 test(proto_str3) :- 
         testEqual("hello world", "bound ' aGVsbG8gd29ybGQ=\n' decode base64 stop").
+test(proto_str4) :- 
+        testEqual("hello world", "bound ' aGVsbG8  gd2 9ybGQ=\n' base64 stop").
+test(proto_str5) :- 
+        testEqual("hello world", "bound ' hello world' utf8 stop").
 test(proto_list1) :- 
         testEqual([1,2,3], "list push 1 int switch push 2 int switch push 3 int switch switch insert switch insert switch insert stop").
 test(proto_list2) :- 
