@@ -29,34 +29,18 @@
 
 
 :- use_module(encoding).
+:- use_module(functions).
 
-equal(X, X).
-equal(X, Y, X, Y).
-equal(X, Y, Z, X, Y, Z).
-equal(X, Y, Z, A, X, Y, Z, A).
-
-map(_, [], []).
-map(Func, [E|L], [O|M]):-
-		call(Func, E, O),
-		map(Func, L, M).
-
-% foreach(Variable, List, Function) 
-% execute the Function, binding Variable to every List item
-foreach(_, [], _).
-foreach(Predicate, [Value|Values], Function):-
-		(	Predicate is Value, 
-			call(Function), fail
-		) ;
-		foreach(Predicate, Values, Function).
 		
 %%%%%%%%%%%%%%%%%%%%      string stream     %%%%%%%%%%%%%%%%%%%%      
 
-% readChars(+String, +Count, -String, -NewRead)
+%% readChars(+String, +Count, -String, -NewRead)
 %   NewRead(+count, -chars, -nextRead)
 % create a stream from a string
-readChars(X, 0, "", readChars(X)).
+readChars(X, 0, "", readChars(X)) :- !.
 
-readChars([], _, "", NewRead):-
+readChars("", _, "", NewRead):-
+		% yield nothing if stream is empty
 		readChars("", 0, _, NewRead).
 
 readChars([Char| String], I, [Char | String2], NewRead):-
@@ -66,7 +50,7 @@ readChars([Char| String], I, [Char | String2], NewRead):-
 		
 %%%%%%%%%%%%%%%%%%%%      stream operations     %%%%%%%%%%%%%%%%%%%%      
 
-% readUntil(+Read, +CharList, String, LastChar, -NewRead)
+%% readUntil(+Read, +CharList, String, LastChar, -NewRead)
 %		Read(+count, -chars, -nextRead)
 %	 NewRead(+count, -chars, -nextRead)
 % read until a character of the String occours
@@ -74,12 +58,12 @@ readUntil(Read, CharList, String, LastChar, NewRead):-
 		equal(CharList, [_|_]),
 		readWhile(Read, readUntilCondition(CharList), String, LastChar, NewRead).
 
-% readUntilCondition(+List, Char)
+%% readUntilCondition(+List, Char)
 % true if Char in List
 readUntilCondition(List, Char) :- \+ member(Char, List).
 		
 
-% readWhile(+Read, Condition, String, LastChar, -NewRead)
+%% readWhile(+Read, Condition, String, LastChar, -NewRead)
 %	   Read(+count, -chars, -nextRead)
 %	NewRead(+count, -chars, -nextRead)
 %	Condition(Char)
@@ -104,51 +88,51 @@ readWhile(Read, Condition, String, LastChar, NewRead):-
 		).
 		
 		
-% readSkip(+Read, +CharList, String, LastChar, -NewRead)
+%% readSkip(+Read, +CharList, String, LastChar, -NewRead)
 %	   Read(+count, -chars, -nextRead)
 %	NewRead(+count, -chars, -nextRead)
 % read until no character of CharList is read
 readSkip(Read, CharList, String, LastChar, NewRead):-
 		readWhile(Read, readSkipCondition(CharList), String, LastChar, NewRead).
 		
-% readSkip(+Read, +CharList, LastChar, -NewRead)
+%% readSkip(+Read, +CharList, LastChar, -NewRead)
 %	   Read(+count, -chars, -nextRead)
 %	NewRead(+count, -chars, -nextRead)
 % read until no character of CharList is read
 readSkip(Read, CharList, LastChar, NewRead) :- 
 		readSkip(Read, CharList, _, LastChar, NewRead).
 		
-% readSkipCondition(+List, Char)
+%% readSkipCondition(+List, Char)
 % true if List contains Char
 readSkipCondition(List, Char) :- member(Char, List).
 
-% readBound(-Read, -Bound, String, +NewRead)
+%% readBound(-Read, -Bound, String, +NewRead)
 % 
 readBound(Read, Bound, String, NewRead) :- 
 		length(Bound, BoundLen),
-		call(Read, BoundLen, StartString, Read1),
+		call(Read, BoundLen, StartString, Read1), !,
 		readBound(Read1, StartString, BoundLen, Bound, String, NewRead).
 		
 readBound(Read, Bound, _, Bound, [], Read) :- !.
 readBound(Read, StartString, BoundLen, Bound, Out, NewRead):- 
 		length(StartString, StrLen),
 		CharCountToRead is BoundLen - StrLen,
-		call(Read, CharCountToRead, ReadString, Read1), 
+		call(Read, CharCountToRead, ReadString, Read1), !, 
 		append(StartString, ReadString, String),
 		findBoundMatch(Bound, String, Index, _, _),
 		append(NoBound, StringBoundPart, String),
-		length(NoBound, Index),
+		length(NoBound, Index), !,
 		% recursion here
 		readBound(Read1, StringBoundPart, BoundLen, Bound, Out2, NewRead),
 		append(NoBound, Out2, Out).
 		
 matchBound([C|Bound], [C|String], Count, BoundEnd) :- 
 		matchBound(Bound, String, Count1, BoundEnd), 
-		Count is 1 + Count1.
-matchBound(Bound, [], 0, Bound).
+		Count is 1 + Count1, !.
+matchBound(Bound, [], 0, Bound) :- !.
 matchBound([], _, 0, []).
 
-findBoundMatch(Bound, [], 0, 0, Bound).
+findBoundMatch(Bound, [], 0, 0, Bound) :- !.
 findBoundMatch(Bound, String, 0, Len, BoundEnd) :-	
 		matchBound(Bound, String, Len, BoundEnd), !.
 findBoundMatch(Bound, [_|String], Index, Len, BoundEnd) :-
@@ -162,13 +146,24 @@ findBoundMatch(Bound, [_|String], Index, Len, BoundEnd) :-
 noValue(Stream, Value, NewStream) :- readTerm(Stream, Value, NewStream).
 hasValue(Value, Stream, Value, Stream).
 
-% readToken(-Read, token, +NewRead)
+%% readToken(-Read, token, +NewRead)
 % read a token until whitespace and skip the preceeding whitespaces
 readToken(Read, [FistChar|Token], NewRead):-
 		readSkip(Read, " \t\n\r\f\v", [FistChar], Read2),
 		readUntil(Read2, " \t\n\r\f\v", Token, _, NewRead).
 
-% protocolStream(Read, Stack, Predicates)
+
+%% readTokens(+Read, +Count, -[Tokens], -NewRead)
+%   NewRead(+count, -chars, -nextRead)
+% a token stream from Read of chars
+% read Count tokens from the string
+readTokens(Read, 0, [], readTokens(Read)).
+readTokens(Read, I, [Token | Result], NewRead):-
+		I >= 1, I2 is I - 1, 
+		readToken(Read, Token, TRead),
+		readTokens(TRead, I2, Result, NewRead).
+
+%% protocolStream(Read, Stack, Predicates)
 %	Predicates is [pStreamFunc("name", predicate), ...]
 %	Stack is ["...", ]
 %	predicate(+Stream, -NewStream)
@@ -177,7 +172,7 @@ readToken(Read, [FistChar|Token], NewRead):-
 newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :- 
 		findall(inputPredicate(String, Name), inputPredicate(String, Name), Predicates).
 	
-% readTerm(-ProtocolStream, Value, +NewProtocolStream)
+%% readTerm(-ProtocolStream, Value, +NewProtocolStream)
 % read a term from the Stream
 readTerm(Stream, Term, NewStream) :-
 		readToken(streamRead(Stream), Command, ReadAfter),
@@ -185,19 +180,18 @@ readTerm(Stream, Term, NewStream) :-
 		callStreamCommand(StreamAfter, Command, Result, CStream),
 		call( Result, CStream, Term, NewStream).
 
-% streamRead(+Stream, +Count, -Chars, -NewRead)
+%% streamRead(+Stream, +Count, -Chars, -NewRead)
 % 	Stream is protocolStream
 % wrap around stream read
 streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Count, Chars, NewRead).
 
-% newRead(NewRead, OldProtocolStream, NewProtocolStream)
+%% newRead(NewRead, OldProtocolStream, NewProtocolStream)
 % replace the Read of the old prtocolStream with the new Read
 newRead(NewRead, protocolStream(_, Stack, Predicates), protocolStream(NewRead, Stack, Predicates)).
 
-% callStreamCommand(-ProtocolStream, -Command,  +Value, +ProtocolStream)
+%% callStreamCommand(-ProtocolStream, -Command,  +Value, +ProtocolStream)
 % call a command on a given stream
 callStreamCommand(protocolStream(Read, Stack, Predicates), Command, Result, NewStream) :- 
-%		gtrace,
 		member(inputPredicate(Command, Predicate), Predicates) -> (
 			definePredicate(
 					Predicate, 
@@ -211,7 +205,9 @@ callStreamCommand(protocolStream(Read, Stack, Predicates), Command, Result, NewS
 			throw(invalidCommand(CommandAtom)).
 		
 %%%%%%%%%%%%%%%%%%%%      given protocol functions     %%%%%%%%%%%%%%%%%%%%      
-		
+
+%% inputPredicate(String, Atom)
+% predicates taht are defined as stream operations
 inputPredicate("push", push).
 inputPredicate("stop", stop).
 inputPredicate("list", list).
@@ -226,25 +222,16 @@ inputPredicate("base64", base64).
 inputPredicate("utf8", utf8).
 inputPredicate(S, A):- member(S, ["int", "num", "float"]), string_to_atom(S, A).
 
+%%%%%%%%%%%%%%%%%%%%% Prolog specific %%%%%%%%%%%%%%%%%%%
 
-definePredicate(push,	protocolStream(Read, Stack, P), 
-						protocolStream(NewRead, [Token|Stack], P), noValue) :-
-		readToken(Read, Token, NewRead).
-
-definePredicate(bound,	protocolStream(Read, Stack, P), 
-						protocolStream(NewRead, [String|Stack], P), noValue) :-
-		% todo:
-		readToken(Read, Bound, Read1),
-		readBound(Read1, Bound, String, NewRead).
+%% definePredicate(+Name, +Stream, -NewStream, -Value) 
+% the operations defined on the stream
 
 definePredicate(Num,	protocolStream(Read, [S|Stack], P), 
 						protocolStream(Read, [I|Stack], P), noValue) :-
 		member(Num, [int, float, num]),
 		number_codes(I, S).
 		
-definePredicate(stop,	protocolStream(Read, [S|Stack], P), 
-						protocolStream(Read, Stack, P), hasValue(S)).
-
 definePredicate(list,	protocolStream(Read, Stack, P), 
 						protocolStream(Read, [[]|Stack], P), noValue).
 
@@ -257,16 +244,8 @@ definePredicate(insert,	protocolStream(Read, [A, L|Stack], P),
 definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
 						protocolStream(Read, [A, L|Stack], P), noValue).
 
-definePredicate(save,	protocolStream(Read, [Value|Stack], P), 
-						protocolStream(NewRead, Stack, 
-						[inputPredicate(Command, restore(Value))|P]), noValue):-
-		readToken(Read, Command, NewRead).
-
 definePredicate(head,	protocolStream(Read, [[A|L]|Stack], P), 
 						protocolStream(Read, [A, L|Stack], P), noValue).
-
-definePredicate(dup,	protocolStream(Read, [A|Stack], P), 
-						protocolStream(Read, [A, A|Stack], P), noValue).
 
 definePredicate(base64,	protocolStream(Read, [A|Stack], P), 
 						protocolStream(Read, [B|Stack], P), noValue) :- 
@@ -276,9 +255,37 @@ definePredicate(utf8,	protocolStream(Read, [A|Stack], P),
 						protocolStream(Read, [B|Stack], P), noValue) :- 
 		encoding(utf8, B, A).
 		
+
+%%%%%%%%%%%%%%%%%%%%% Protocol specific %%%%%%%%%%%%%%%%%%%
+definePredicate(push,	protocolStream(Read, Stack, P), 
+						protocolStream(NewRead, [Token|Stack], P), noValue) :-
+		readToken(Read, Token, NewRead).
+
+		
+definePredicate(bound,	protocolStream(Read, Stack, P), 
+						protocolStream(NewRead, [String|Stack], P), noValue) :-
+		% todo:
+		readToken(Read, Bound, Read1),
+		readBound(Read1, Bound, String, NewRead).
+
+		
+definePredicate(stop,	protocolStream(Read, [S|Stack], P), 
+						protocolStream(Read, Stack, P), hasValue(S)).
+
+						
+definePredicate(save,	protocolStream(Read, [Value|Stack], P), 
+						protocolStream(NewRead, Stack, 
+						[inputPredicate(Command, restore(Value))|P]), noValue):-
+		readToken(Read, Command, NewRead).
+
 definePredicate(restore(V),	protocolStream(Read, Stack, P), 
 						protocolStream(Read, [V|Stack], P), noValue).
 
+						
+definePredicate(dup,	protocolStream(Read, [A|Stack], P), 
+						protocolStream(Read, [A, A|Stack], P), noValue).
+						
+						
 definePredicate(def,	protocolStream(Read, Stack, P), 
 						protocolStream(NewRead, Stack, 
 						[inputPredicate(Name, defined(Commands))|P]), noValue) :-
@@ -295,15 +302,4 @@ definePredicate(defined([Command|Commands]), OldStream, NewStream, noValue) :-
 definePredicate(defined([]), Stream, Stream, noValue).
 
 		
-% for def
-% readTokens(+Read, +Count, -[Tokens], -NewRead)
-%   NewRead(+count, -chars, -nextRead)
-% a token stream from Read of chars
-% read Count tokens from the string
-readTokens(Read, 0, [], readTokens(Read)).
-readTokens(Read, I, [Token | Result], NewRead):-
-		I >= 1, I2 is I - 1, 
-		readToken(Read, Token, TRead),
-		readTokens(TRead, I2, Result, NewRead).
-
 		
