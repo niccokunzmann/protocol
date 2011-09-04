@@ -1,5 +1,5 @@
 
-:- consult(encoding).
+:- :- use_module(encoding).
 
 equal(X, X).
 equal(X, Y, X, Y).

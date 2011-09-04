@@ -6,7 +6,8 @@
 
 equals(X, X).
 
-:- consult(base64).
+:- use_module(base64).
+:- use_module(utf8).
 
 encoding(base64, Plain, Encoded) :- 
 		( atom(Plain); atom(Encoded) ) -> 
