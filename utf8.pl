@@ -1,7 +1,5 @@
 
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  SWI-Prolog
 
     Author:        Nicco Kunzmann
     E-mail:        
