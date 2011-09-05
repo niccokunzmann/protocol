@@ -237,9 +237,6 @@ definePredicate(Num,	protocolStream(Read, [S|Stack], P),
 definePredicate(list,	protocolStream(Read, Stack, P), 
 						protocolStream(Read, [[]|Stack], P), noValue).
 
-definePredicate(switch,	protocolStream(Read, [A, B|Stack], P), 
-						protocolStream(Read, [B, A|Stack], P), noValue).
-
 definePredicate(insert,	protocolStream(Read, [A, L|Stack], P), 
 						protocolStream(Read, [[A|L]|Stack], P), noValue).
 						
@@ -261,6 +258,10 @@ definePredicate(decode,	protocolStream(Read, [A|Stack], P),
 		encoding(Encoding, B, A).
 
 %%%%%%%%%%%%%%%%%%%%% Protocol specific %%%%%%%%%%%%%%%%%%%
+
+definePredicate(switch,	protocolStream(Read, [A, B|Stack], P), 
+						protocolStream(Read, [B, A|Stack], P), noValue).
+
 definePredicate(push,	protocolStream(Read, Stack, P), 
 						protocolStream(NewRead, [Token|Stack], P), noValue) :-
 		readToken(Read, Token, NewRead).
