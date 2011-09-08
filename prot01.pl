@@ -37,7 +37,7 @@
 
 characterStream(String, characterStream(String)).
 
-%% characterStreamRead(+String, +Count, -String, -NewRead)
+%% characterStreamRead(-String, -Count, +String, +NewRead)
 %   NewRead(+count, -chars, -nextRead)
 % read characters from a stream
 characterStreamRead(X, 0, "", characterStreamRead(X)) :- !.
@@ -50,7 +50,7 @@ characterStreamRead([Char| String], I, [Char | String2], NewRead):-
 		I >= 1, I2 is I - 1, 
 		characterStreamRead(String, I2, String2, NewRead).
 
-%% characterStreamWrite(+String, +String, -CharsWritten, -NewRead)
+%% characterStreamWrite(-String, -String, +CharsWritten, +NewRead)
 %   NewRead(+String, -CharsWritten, -NewRead)
 % write characters to a stream
 
@@ -85,22 +85,22 @@ streamWrite(characterStream(String), characterStreamWrite(String)).
 
 %%%%%%%%%%%%%%%%%%%%      stream operations     %%%%%%%%%%%%%%%%%%%%      
 
-%% readUntil(+Read, +CharList, String, LastChar, -NewRead)
-%		Read(+count, -chars, -nextRead)
-%	 NewRead(+count, -chars, -nextRead)
+%% readUntil(-Read, -CharList, String, LastChar, +NewRead)
+%		Read(-count, +chars, +nextRead)
+%	 NewRead(-count, +chars, +nextRead)
 % read until a character of the String occours
 readUntil(Read, CharList, String, LastChar, NewRead):-
 		equal(CharList, [_|_]),
 		readWhile(Read, readUntilCondition(CharList), String, LastChar, NewRead).
 
-%% readUntilCondition(+List, Char)
+%% readUntilCondition(-List, Char)
 % true if Char in List
 readUntilCondition(List, Char) :- \+ member(Char, List).
 		
 
-%% readWhile(+Read, Condition, String, LastChar, -NewRead)
-%	   Read(+count, -chars, -nextRead)
-%	NewRead(+count, -chars, -nextRead)
+%% readWhile(-Read, Condition, String, LastChar, +NewRead)
+%	   Read(-count, +chars, +nextRead)
+%	NewRead(-count, +chars, +nextRead)
 %	Condition(Char)
 % read a character from Read while the condition ist True
 % 	if nothing was read LastChar will be ""
@@ -123,25 +123,25 @@ readWhile(Read, Condition, String, LastChar, NewRead):-
 		).
 		
 		
-%% readSkip(+Read, +CharList, String, LastChar, -NewRead)
-%	   Read(+count, -chars, -nextRead)
-%	NewRead(+count, -chars, -nextRead)
+%% readSkip(-Read, -CharList, String, LastChar, +NewRead)
+%	   Read(-count, +chars, +nextRead)
+%	NewRead(-count, +chars, +nextRead)
 % read until no character of CharList is read
 readSkip(Read, CharList, String, LastChar, NewRead):-
 		readWhile(Read, readSkipCondition(CharList), String, LastChar, NewRead).
 		
-%% readSkip(+Read, +CharList, LastChar, -NewRead)
-%	   Read(+count, -chars, -nextRead)
-%	NewRead(+count, -chars, -nextRead)
+%% readSkip(-Read, -CharList, LastChar, +NewRead)
+%	   Read(-count, +chars, +nextRead)
+%	NewRead(-count, +chars, +nextRead)
 % read until no character of CharList is read
 readSkip(Read, CharList, LastChar, NewRead) :- 
 		readSkip(Read, CharList, _, LastChar, NewRead).
 		
-%% readSkipCondition(+List, Char)
+%% readSkipCondition(-List, Char)
 % true if List contains Char
 readSkipCondition(List, Char) :- member(Char, List).
 
-%% readBound(-Read, -Bound, String, +NewRead)
+%% readBound(+Read, +Bound, String, -NewRead)
 % 
 readBound(Read, Bound, String, NewRead) :- 
 		length(Bound, BoundLen),
@@ -179,15 +179,15 @@ findBoundMatch(Bound, [_|String], Index, Len, BoundEnd) :-
 noValue(Stream, Value, NewStream) :- readTerm(Stream, Value, NewStream).
 hasValue(Value, Stream, Value, Stream).
 
-%% readToken(-Read, token, +NewRead)
+%% readToken(+Read, token, -NewRead)
 % read a token until whitespace and skip the preceeding whitespaces
 readToken(Read, [FistChar|Token], NewRead):-
 		readSkip(Read, " \t\n\r\f\v", [FistChar], Read2),
 		readUntil(Read2, " \t\n\r\f\v", Token, _, NewRead).
 
 
-%% readTokens(+Read, +Count, -[Tokens], -NewRead)
-%   NewRead(+count, -chars, -nextRead)
+%% readTokens(-Read, -Count, +[Tokens], +NewRead)
+%   NewRead(-count, +chars, +nextRead)
 % a token stream from Read of chars
 % read Count tokens from the string
 readTokens(Read, 0, [], readTokens(Read)) :- !.
@@ -205,7 +205,7 @@ readTokens(Read, I, [Token | Result], NewRead):-
 newProtocolInputStream(Read, protocolStream(Read, [], Predicates)) :- 
 		findall(inputPredicate(String, Name), inputPredicate(String, Name), Predicates).
 	
-%% readTerm(-ProtocolStream, Value, +NewProtocolStream)
+%% readTerm(+ProtocolStream, Value, -NewProtocolStream)
 % read a term from the Stream
 readTerm(Stream, Term, NewStream) :-
 		readToken(streamRead(Stream), Command, ReadAfter),
@@ -213,7 +213,7 @@ readTerm(Stream, Term, NewStream) :-
 		callStreamCommand(StreamAfter, Command, Result, CStream),
 		call( Result, CStream, Term, NewStream).
 
-%% streamRead(+Stream, +Count, -Chars, -NewRead)
+%% streamRead(-Stream, -Count, +Chars, +NewRead)
 % 	Stream is protocolStream
 % wrap around stream read
 streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Count, Chars, NewRead).
@@ -222,7 +222,7 @@ streamRead(protocolStream(Read, _, _), Count, Chars, NewRead) :- call(Read, Coun
 % replace the Read of the old prtocolStream with the new Read
 newRead(NewRead, protocolStream(_, Stack, Predicates), protocolStream(NewRead, Stack, Predicates)).
 
-%% callStreamCommand(-ProtocolStream, -Command,  +Value, +ProtocolStream)
+%% callStreamCommand(+ProtocolStream, +Command,  -Value, -ProtocolStream)
 % call a command on a given stream
 callStreamCommand(protocolStream(Read, Stack, Predicates), Command, Result, NewStream) :- 
 		member(inputPredicate(Command, Predicate), Predicates) -> (
@@ -258,7 +258,7 @@ inputPredicate(S, A):- member(S, ["int", "num", "float"]), string_to_atom(S, A).
 
 %%%%%%%%%%%%%%%%%%%%% Prolog specific %%%%%%%%%%%%%%%%%%%
 
-%% definePredicate(+Name, +Stream, -NewStream, -Value) 
+%% definePredicate(-Name, -Stream, +NewStream, +Value) 
 % the operations defined on the stream
 
 definePredicate(Num,	protocolStream(Read, [S|Stack], P), 
