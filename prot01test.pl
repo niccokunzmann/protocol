@@ -29,40 +29,19 @@
 
 
 :- begin_tests(prot). 
-%%%%%%%%%%%%%%%%%%%%      Test string reader     %%%%%%%%%%%%%%%%%%%%      
+
+% test tests
+
 test(testtest) :-
         reverse([1,2], [2,1]).
-		
-test(whitespace) :-
-		length(" \t\n\r\f\v", 6).
- 
-test(reader1) :- 
-		S = "abcdefg", characterStreamRead(S, 3, "abc", _).
-
-test(reader2) :- 
-        S = "abcdefg", characterStreamRead(S, 3, "abc", NewRead), 
-		call(NewRead, 3, "def", _).
-
-test(reader3) :- 
-        S = "abcdefg", characterStreamRead(S, 8, _, NewRead), 
-		call(NewRead, 3, [], _).
-
-test(reader4) :- 
-        S = "abcdefg", 
-		Read0 = characterStreamRead(S),
-		call(Read0, 1, "a", Read1), 
-		call(Read1, 1, "b", Read2),
-		call(Read2, 1, "c", Read3),
-		call(Read3, 1, "d", Read4),
-		call(Read4, 1, "e", Read5),
-		call(Read5, 1, "f", Read6),
-		call(Read6, 1, "g", Read7),
-		equal(Read7, characterStreamRead("")).
 
 urks(A, B, C) :- C =:= A + B.
 test(urks) :-
 		call(urks(1, 1), 2).
-
+		
+test(whitespace) :-
+		length(" \t\n\r\f\v", 6).
+ 
 
 %%%%%%%%%%%%%%%%%%%%      Test readUntil     %%%%%%%%%%%%%%%%%%%%      
 
@@ -190,11 +169,14 @@ test(proto_list3) :-
  
 main:- 
         consult(encoding), 
+        consult(encodingtest), 
         consult(base64), 
         consult(utf8), 
         consult(prot01), 
         consult(prot01test), 
         consult(prot01help), 
+        consult(stream), 
+        consult(streamtest), 
 		main2.
         
 main2:- 

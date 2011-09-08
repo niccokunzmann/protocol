@@ -30,58 +30,9 @@
 
 :- use_module(encoding).
 :- use_module(functions).
+:- use_module(stream).
 
 		
-%%%%%%%%%%%%%%%%%%%%      character stream     %%%%%%%%%%%%%%%%%%%%      
-
-
-characterStream(String, characterStream(String)).
-
-%% characterStreamRead(-String, -Count, +String, +NewRead)
-%   NewRead(+count, -chars, -nextRead)
-% read characters from a stream
-characterStreamRead(X, 0, "", characterStreamRead(X)) :- !.
-
-characterStreamRead("", _, "", NewRead):-
-		% yield nothing if stream is empty
-		characterStreamRead("", 0, _, NewRead).
-
-characterStreamRead([Char| String], I, [Char | String2], NewRead):-
-		I >= 1, I2 is I - 1, 
-		characterStreamRead(String, I2, String2, NewRead).
-
-%% characterStreamWrite(-String, -String, +CharsWritten, +NewRead)
-%   NewRead(+String, -CharsWritten, -NewRead)
-% write characters to a stream
-
-characterStreamWrite(	String, [Char | Written], C, 
-						characterStreamWrite([Char|String2])):-
-		characterStreamWrite(String, C2, Written, characterStreamWrite(String2)),
-		C is C2 + 1.
-		
-characterStreamWrite(X, "", 0, characterStreamWrite(X)) :- !.
-
-characterStream(String, characterStream(String)).
-
-
-% todo: read from static function
-
-/* characterStream("character", Stream).
- * streamRead(+-Stream, -+Read)
- * streamWrite(+-Stream, -+Read)
- * call(Read, Count, [...], NewRead)
- * call(Write, [], Count, NewWrite)
- * 
- * 
- */
-
-%%%%%%%%%%%%%%%%%%%%      stream read and write     %%%%%%%%%%%%%%%%%%%%      
-
-
- 
-streamRead(characterStream(String), characterStreamRead(String)).
-
-streamWrite(characterStream(String), characterStreamWrite(String)).
 
 %%%%%%%%%%%%%%%%%%%%      stream operations     %%%%%%%%%%%%%%%%%%%%      
 
