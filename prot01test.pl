@@ -37,19 +37,19 @@ test(whitespace) :-
 		length(" \t\n\r\f\v", 6).
  
 test(reader1) :- 
-		S = "abcdefg", readChars(S, 3, "abc", _).
+		S = "abcdefg", characterStreamRead(S, 3, "abc", _).
 
 test(reader2) :- 
-        S = "abcdefg", readChars(S, 3, "abc", NewRead), 
+        S = "abcdefg", characterStreamRead(S, 3, "abc", NewRead), 
 		call(NewRead, 3, "def", _).
 
 test(reader3) :- 
-        S = "abcdefg", readChars(S, 8, _, NewRead), 
+        S = "abcdefg", characterStreamRead(S, 8, _, NewRead), 
 		call(NewRead, 3, [], _).
 
 test(reader4) :- 
         S = "abcdefg", 
-		Read0 = readChars(S),
+		Read0 = characterStreamRead(S),
 		call(Read0, 1, "a", Read1), 
 		call(Read1, 1, "b", Read2),
 		call(Read2, 1, "c", Read3),
@@ -57,7 +57,7 @@ test(reader4) :-
 		call(Read4, 1, "e", Read5),
 		call(Read5, 1, "f", Read6),
 		call(Read6, 1, "g", Read7),
-		equal(Read7, readChars("")).
+		equal(Read7, characterStreamRead("")).
 
 urks(A, B, C) :- C =:= A + B.
 test(urks) :-
@@ -68,26 +68,26 @@ test(urks) :-
 
 test(readUntil1) :-
 	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars("123456789"), "3", "12", "3", _).
+		readUntil(characterStreamRead("123456789"), "3", "12", "3", _).
 
 test(readUntil2) :-
 	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars(""), "a", "", "", _).
+		readUntil(characterStreamRead(""), "a", "", "", _).
 
 test(readUntil3) :-
 	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readUntil(readChars("1234567890"), "a", "1234567890", "", _).
+		readUntil(characterStreamRead("1234567890"), "a", "1234567890", "", _).
 
 		
 %%%%%%%%%%%%%%%%%%%%      Test readSkip     %%%%%%%%%%%%%%%%%%%%      
 
 test(readSkip1) :-
 	%	readSkip(+Read,           +CharList, -String, -LastChar, -NewRead)
-		readSkip(readChars("123456789"), "12", "12", "3", _).
+		readSkip(characterStreamRead("123456789"), "12", "12", "3", _).
 		
 test(readSkip2) :-
 	%	readSkip(+Read,           +CharList, -String, -LastChar, -NewRead)
-		readSkip(readChars(""), "a", "", "", _).
+		readSkip(characterStreamRead(""), "a", "", "", _).
 		
 %%%%%%%%%%%%%%%%%%%%      Test Bound functions     %%%%%%%%%%%%%%%%%%%%      
 
@@ -107,17 +107,17 @@ test(findBoundMatch3) :-
 		findBoundMatch("---", "abc--", 3, 2, "-").
 		
 test(readBound1) :- 
-		readBound(	readChars("-- jaldfl"), 
+		readBound(	characterStreamRead("-- jaldfl"), 
 					"--", String, _),
 		equal(String, "").
 		
 test(readBound2) :- 
-		readBound(	readChars("123-- jaldfl"), 
+		readBound(	characterStreamRead("123-- jaldfl"), 
 					"--", String, _),
 		equal(String, "123").
 
 test(readBound3) :- 
-		readBound(	readChars("12-- jaldfl"), 
+		readBound(	characterStreamRead("12-- jaldfl"), 
 					"--", String, _),
 		equal(String, "12").
 
@@ -130,17 +130,17 @@ test(readBound3) :-
 % 	predicate(+Stream, -NewStream)
 
 test(newStream) :- 
-		newProtocolInputStream(readChars(""), _).
+		newProtocolInputStream(characterStreamRead(""), _).
 
 test(readToken1) :- 
-		readToken(readChars("  123456 "), "123456", _).
+		readToken(characterStreamRead("  123456 "), "123456", _).
 
 test(readToken2) :- 
-		readToken(readChars("  1234"), "1234", _).
+		readToken(characterStreamRead("  1234"), "1234", _).
 
 test(readTokens1) :-
 	%	readUntil(+Read, +CharList, -String, -LastChar, -NewRead)
-		readTokens(readChars("la li lu ! "), 3, ["la", "li", "lu"], 
+		readTokens(characterStreamRead("la li lu ! "), 3, ["la", "li", "lu"], 
 				_).
 
 
@@ -150,7 +150,7 @@ test(readTokens1) :-
 testEqual(Value, String) :- testEqual(Value, String, _).
 
 testEqual(Value, String, StreamOut) :- 
-		Read = readChars(String),
+		Read = characterStreamRead(String),
 		newProtocolInputStream(Read, Stream),
 		readTerm(Stream, Value, StreamOut).
 
