@@ -30,28 +30,30 @@
 :- use_module(stream).
 
 :- begin_tests(stream). 
-%%%%%%%%%%%%%%%%%%%%      Test string characterStream_     %%%%%%%%%%%%%%%%%%%%      
-test(characterStream_1) :- 
+
+%%%%%%%%%%%%%%%%%%%%      Test characterStream    %%%%%%%%%%%%%%%%%%%%      
+
+test(characterStream_read_1) :- 
 		S = "abcdefg", 
 		characterStream(S, Stream),
 		streamRead(Stream, Read0),
 		call(Read0, 3, "abc", _).
 
-test(characterStream_2) :- 
+test(characterStream_read_2) :- 
         S = "abcdefg", 
 		characterStream(S, Stream),
 		streamRead(Stream, Read0),
 		call(Read0, 3, "abc", NewRead), 
 		call(NewRead, 3, "def", _).
 
-test(characterStream_3) :- 
+test(characterStream_read_3) :- 
         S = "abcdefg", 
 		characterStream(S, Stream),
 		streamRead(Stream, Read0),
 		call(Read0, 8, _, NewRead), 
 		call(NewRead, 3, [], _).
 
-test(characterStream_4) :- 
+test(characterStream_read_4) :- 
         S = "abcdefg", 
 		characterStream(S, Stream),
 		streamRead(Stream, Read0),
@@ -64,6 +66,50 @@ test(characterStream_4) :-
 		call(Read6, 1, "g", Read7),
 		equal(Read7, characterStreamRead("")).
 
+%%%%%%%%%%%%%%%%%%%%      Test ioStream    %%%%%%%%%%%%%%%%%%%%      
+		
+test(fileStream_read_1) :- 
+		test_fileStream_read_1("test.txt").
+	
+test_fileStream_read_1(FileName) :-
+		open(FileName, read, Stream), % gtrace,
+		ioStream(Stream, IO),
+		streamRead(IO, Read0),
+		call(Read0, 3, "abc", Read1),
+		call(Read1, 5, " abcd", Read2),
+		call(Read2, 6, " abcde", Read3),
+		call(Read3, 6, " ", Read4),
+		call(Read4, 16, "", _).
+
+test(fileStream_write_1) :- 
+		open("test2.txt", write, Stream), 
+		ioStream(Stream, IO),
+		streamWrite(IO, Write0),
+		call(Write0, "abc ", 4, Write1),
+		call(Write1, "abcd ", 5, Write2),
+		call(Write2, "abcde ", 6, _),
+		flush_output(Stream),
+		test_fileStream_read_1("test2.txt").
+		
+test(characterStream_write_1) :- 
+        characterStream("lali", CS),
+		streamRead(CS, Read1),
+		call(Read1, 3, "lal", Read2),
+		call(Read2, 3, "i", Read3),
+		streamRead(CS2, Read3),
+		streamWrite(CS2, Write1),
+		call(Write1, "abc", 3, Write2),
+		call(Write2, " x", 2, Write3),
+		streamWrite(CS3, Write3),
+		streamRead(CS3, Read4), % gtrace,
+		call(Read4, 2, "ab", Read5), 
+		streamRead(CS4, Read5),
+		streamWrite(CS4, Write4),
+		call(Write4, "y ", 2, Write5),
+		streamWrite(CS5, Write5),
+		streamRead(CS5, Read6),
+		call(Read6, 12, "c xy ", _).
+		
 :- end_tests(stream). 
  
 main:- 
@@ -71,6 +117,7 @@ main:-
         consult(base64), 
         consult(utf8), 
 		consult(stream),
+		consult(streamtest),
 		main2.
         
 main2:- 

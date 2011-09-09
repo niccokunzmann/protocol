@@ -50,17 +50,15 @@ characterStreamRead([Char| String], I, [Char | String2], NewRead):-
 %   NewRead(+String, -CharsWritten, -NewRead)
 % write characters to a stream
 
-characterStreamWrite(	String, [Char | Written], C, 
-						characterStreamWrite([Char|String2])):-
-		characterStreamWrite(String, C2, Written, characterStreamWrite(String2)),
-		C is C2 + 1.
-		
-characterStreamWrite(X, "", 0, characterStreamWrite(X)) :- !.
+characterStreamWrite(	String, Bytes, C, 
+						characterStreamWrite(String2)):-
+		length(Bytes, C),
+		append(String, Bytes, String2).
 
 %%%%%%%%%%%%%%%%%%%%      static read and write     %%%%%%%%%%%%%%%%%%%%      
 
 staticRead(Read, 0, "", staticRead(Read)) :- !.
-staticRead(Read, I, String, Read):-
+staticRead(Read, I, String, staticRead(Read)):-
 		call(Read, Byte),
 		( Byte is -1 -> 
 			String = []
@@ -71,27 +69,25 @@ staticRead(Read, I, String, Read):-
 		).
  
  
-staticRead(Read, 0, "", staticRead(Read)) :- !.
-staticRead(Read, I, String, Read):-
-		call(Read, Byte),
-		( Byte is -1 -> 
-			String = []
-		; (	I >= 1, I2 is I - 1, 
-			staticRead(Read, I2, String2, _),
-			equal(String, [Byte | String2])
-			)
-		).
+staticWrite(Read, "", 0, staticWrite(Read)) :- !.
+staticWrite(Write, [Byte | String],  I, staticWrite(Write)):-
+		call(Write, Byte),
+		staticWrite(Write, String, I2, _),
+		I is I2 + 1 .
 
 %%%%%%%%%%%%%%%%%%%%      streams     %%%%%%%%%%%%%%%%%%%%      
 
-ioStream(Stream, ioStream(Stream)).
+% ioStream(+-Stream, -+IOStream)
+% requires put_byte and get_byte
+
+ioStream(Stream, ioStream(Stream)) :- is_stream(Stream).
 
 characterStream(String, characterStream(String)).
 
 
 %%%%%%%%%%%%%%%%%%%%      stream read and write     %%%%%%%%%%%%%%%%%%%%      
 
-/* characterStream("character", Stream).
+/* characterStream("characters", Stream).
  * ioStream(Stream, IOStream) 
  * 
  * 
@@ -103,9 +99,12 @@ characterStream(String, characterStream(String)).
  * 
  */
 
+:- multifile(streamRead).
 
-streamRead(characterStream(String), characterStreamRead(String)).
-streamRead(ioStream(String), staticRead(String)).
+streamRead(characterStream(String), characterStreamRead(String)) :- !.
+streamRead(ioStream(Stream), staticRead(get_byte(Stream))) :- !.
 
-streamWrite(characterStream(String), characterStreamWrite(String)).
-streamWrite(ioStream(String), ioStreamWrite(String)).
+:- multifile(streamWrite).
+
+streamWrite(characterStream(String), characterStreamWrite(String)) :- !.
+streamWrite(ioStream(Stream), staticWrite(put_byte(Stream))) :- !.

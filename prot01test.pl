@@ -168,6 +168,7 @@ test(proto_list3) :-
 :- end_tests(prot).
  
 main:- 
+        consult(functions), 
         consult(encoding), 
         consult(encodingtest), 
         consult(base64), 

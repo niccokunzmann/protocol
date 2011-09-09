@@ -33,9 +33,13 @@
 		foreach/3, 
 		map/3,
 		equal/2, equal/4, equal/6, equal/8, equal/10, 
-		range/4
+		range/4,
+		list/1
 	]).
 
+list([]).
+list([_|_]).
+	
 number_binaryAtom(0, '0b0') :- !.
 number_binaryAtom(Num, Atom) :- 
 		nonvar(Num),

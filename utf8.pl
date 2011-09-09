@@ -40,7 +40,8 @@
 	    utf8//2			% ?PlainText, ?ByteOrder
 	  ]).
 
-:- import(functions:equal).
+:- import(functions:equal/2).
+:- import(functions:list/1).
 
 %%	utf8(+Plain, -Encoded) is det.
 %%	utf8(+Plain, -Encoded, ByteOrder) is det.
@@ -55,9 +56,6 @@
 %		reversedByteOrder       	% with BOM
 %	utf8/2 determines the byte order automatically
 %	utf8/3 outputs and takes information about the byte order 
-
-list([]).
-list([_|_]).
 
 utf8(Plain, Encoded) :-
 	utf8(Plain, Encoded, _).
