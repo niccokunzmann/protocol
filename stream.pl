@@ -28,7 +28,25 @@
 */
 
 
+:- module(stream, 
+		[	ioStream/2,
+			characterStream/2,
+			characterStreamRead/4,
+			characterStreamWrite/4,
+			streamRead/2,
+			streamWrite/2,
+			staticCharRead/4,
+			staticCharWrite/4,
+			mutableRead/5,
+			mutableRead3/5,
+			mutableRead4/5,
+			mutableWrite/5,
+			mutableWrite3/5,
+			mutableWrite4/5
+		]).
+
 :- use_module(functions).
+
 
 %%%%%%%%%%%%%%%%%%%%      character stream     %%%%%%%%%%%%%%%%%%%%      
 
@@ -57,24 +75,69 @@ characterStreamWrite(	String, Bytes, C,
 
 %%%%%%%%%%%%%%%%%%%%      static read and write     %%%%%%%%%%%%%%%%%%%%      
 
-staticRead(Read, 0, "", staticRead(Read)) :- !.
-staticRead(Read, I, String, staticRead(Read)):-
+staticCharRead(Read, 0, "", staticCharRead(Read)) :- !.
+staticCharRead(Read, I, String, staticCharRead(Read)):-
 		call(Read, Byte),
 		( Byte is -1 -> 
 			String = []
 		; (	I >= 1, I2 is I - 1, 
-			staticRead(Read, I2, String2, _),
+			staticCharRead(Read, I2, String2, _),
 			equal(String, [Byte | String2])
 			)
 		).
  
  
-staticWrite(Read, "", 0, staticWrite(Read)) :- !.
-staticWrite(Write, [Byte | String],  I, staticWrite(Write)):-
+staticCharWrite(Read, "", 0, staticCharWrite(Read)) :- !.
+staticCharWrite(Write, [Byte | String],  I, staticCharWrite(Write)):-
 		call(Write, Byte),
-		staticWrite(Write, String, I2, _),
+		staticCharWrite(Write, String, I2, _),
 		I is I2 + 1 .
+		
+%%%%%%%%%%%%%%%%%%%%      mutable read and write     %%%%%%%%%%%%%%%%%%%%      
 
+mutableRead3(Read, Stream, 0, [], mutableRead3(Read, Stream)) :- !.
+mutableRead3(Read, Stream, I, String, mutableRead3(Read, NewStream)):-
+		I >= 1, I2 is I - 1, 
+		call(Read, Stream, X, Stream2),
+		mutableRead(	Read, Stream2, I2, String2, 
+		            	mutableRead3(Read, NewStream)
+					),
+		equal(String, [X | String2])
+		.
+
+mutableRead4(Read, Stream, Count, Out, mutableRead4(Read, NewStream)) :- 
+		call(Read, Stream, Count, Out, NewStream).
+		
+mutableRead(Read, Stream, Count, Out, NewRead):- 
+		Read2 =.. [Read, Stream, Count, Out, NewRead],
+		callable(Read2) ->
+			mutableRead4(Read, Stream, Count, Out, NewRead)
+		;	mutableRead3(Read, Stream, Count, Out, NewRead).
+
+mutableWrite3(Write, Stream, [], 0, mutableWrite3(Write, Stream)) :- !.
+mutableWrite3(Write, Stream, List, C, mutableWrite3(Write, NewStream)):-
+		call(Write, Stream, Element, Stream2) -> (
+			mutableWrite3(	Write, Stream2, C2, List2, 
+							mutableWrite3(Write, NewStream)
+						),
+			C is C2 - 1,
+			equal(List, [Element | List2])
+			)
+		;(	equal(List, []),
+			equal(C, 0), 
+			equal(Stream, NewStream)
+			).
+
+mutableWrite(Write, Stream, Count, Out, NewRead):- 
+		Write2 =.. [Write, Stream, Count, Out, NewRead],
+		callable(Write2) ->
+			mutableWrite4(Write, Stream, Count, Out, NewRead)
+		;	mutableWrite3(Write, Stream, Count, Out, NewRead).
+
+mutableWrite4(Write, Stream, Count, Out, mutableWrite4(Write, NewStream)) :- 
+		call(Write, Stream, Count, Out, NewStream).
+		
+		
 %%%%%%%%%%%%%%%%%%%%      streams     %%%%%%%%%%%%%%%%%%%%      
 
 % ioStream(+-Stream, -+IOStream)
@@ -102,9 +165,9 @@ characterStream(String, characterStream(String)).
 :- multifile(streamRead).
 
 streamRead(characterStream(String), characterStreamRead(String)) :- !.
-streamRead(ioStream(Stream), staticRead(get_byte(Stream))) :- !.
+streamRead(ioStream(Stream), staticCharRead(get_byte(Stream))) :- !.
 
 :- multifile(streamWrite).
 
 streamWrite(characterStream(String), characterStreamWrite(String)) :- !.
-streamWrite(ioStream(Stream), staticWrite(put_byte(Stream))) :- !.
+streamWrite(ioStream(Stream), staticCharWrite(put_byte(Stream))) :- !.

@@ -32,7 +32,39 @@
 :- use_module(functions).
 :- use_module(stream).
 
+:- module(prot01,
+		[	definePredicate/4,
+			readUntil/5, 
+			readwhile/5, 
+			readSkip/5, 
+			readBound/6, 
+			inputPredicate/2,
+			readTerm/3,
+			readTerms/4,
+			protocolStream/2,
+			streamRead/2,
+			streamWrite/2,
+			mutableRead/5,
+			mutableWrite/5,
+			staticCharRead/4,
+			staticCharWrite/4
+		]).
 		
+%%%%%%%%%%%%%%%%%%%%      stream      %%%%%%%%%%%%%%%%%%%%      
+
+protocolStream(Stream, protocolStream(Stream)).
+
+:- multifile(streamRead).
+
+streamRead(protocolStream(Stream), mutableRead(readTerms, Stream)):- !.
+streamRead(protocolStream(Stream), mutableRead4(readTerms, Stream)):- !.
+streamRead(protocolStream(Stream), mutableRead3(readTerm, Stream)):- !.
+
+:- multifile(streamWrite).
+
+streamWrite(protocolStream(Stream), mutableWrite(writeTerms, Stream)):- !.
+streamWrite(protocolStream(Stream), mutableWrite4(writeTerms, Stream)):- !.
+streamWrite(protocolStream(Stream), mutableWrite3(writeTerm, Stream)):- !.
 
 %%%%%%%%%%%%%%%%%%%%      stream operations     %%%%%%%%%%%%%%%%%%%%      
 
@@ -163,6 +195,18 @@ readTerm(Stream, Term, NewStream) :-
 		newRead(ReadAfter, Stream, StreamAfter),
 		callStreamCommand(StreamAfter, Command, Result, CStream),
 		call( Result, CStream, Term, NewStream).
+
+%% readTerm(+ProtocolStream, +Count, Values, -NewProtocolStream)
+% read a list of Values from the Stream
+readTerms(Stream, Count, Terms, NewStream) :- 
+		Count >= 1, Count2 is Count - 1,
+		readTerm(Stream, Count2, Terms2, Stream1),
+		(	readTerm(Stream1, Term, NewStream) -> 
+				equal(Terms, [Term | Terms2])
+			;	equal(Terms, Terms2)
+		).
+
+readTerms(Stream, 0, [], Stream) :- !.
 
 %% streamRead(-Stream, -Count, +Chars, +NewRead)
 % 	Stream is protocolStream

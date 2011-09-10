@@ -117,6 +117,7 @@ main:-
         consult(base64), 
         consult(utf8), 
 		consult(stream),
+		include(stream),
 		consult(streamtest),
 		main2.
         

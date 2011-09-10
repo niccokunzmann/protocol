@@ -174,6 +174,7 @@ main:-
         consult(base64), 
         consult(utf8), 
         consult(prot01), 
+		include(prot01),
         consult(prot01test), 
         consult(prot01help), 
         consult(stream), 
